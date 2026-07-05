@@ -1,3 +1,4 @@
+[DEPLOY_NOTES.md](https://github.com/user-attachments/files/29674020/DEPLOY_NOTES.md)
 # Harvest of Unstoppable Blessings — Deployment Guide
 ### St. Charles Catholic Church, Owhase
 
