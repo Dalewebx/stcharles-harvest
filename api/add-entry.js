@@ -19,6 +19,10 @@ module.exports = async function handler(req, res) {
   if (!type || !['income', 'expense'].includes(type)) return res.status(400).json({ error: 'Type must be income or expense' });
   if (!category) return res.status(400).json({ error: 'Category required' });
   if (!amount || isNaN(amount) || Number(amount) <= 0) return res.status(400).json({ error: 'A valid amount is required' });
+  if (type === 'income' && !name) return res.status(400).json({ error: 'Name is required for income entries' });
+  const resolvedDate = entry_date || new Date().toISOString().slice(0, 10);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (resolvedDate > todayStr) return res.status(400).json({ error: 'The date cannot be ahead of today.' });
 
   try {
     const admin = await verifyLogin(username, pin);
@@ -36,7 +40,7 @@ module.exports = async function handler(req, res) {
         Prefer: 'return=representation',
       },
       body: JSON.stringify({
-        entry_date: entry_date || new Date().toISOString().slice(0, 10),
+        entry_date: resolvedDate,
         type,
         category,
         name: name || null,
