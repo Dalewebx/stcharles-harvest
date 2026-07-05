@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Harvest of Unstoppable Blessings — St. Charles Owhase</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --green:#1B4332; --green-light:#2D6A4F;
+  --gold:#C68A2E; --gold-light:#E8C77E;
+  --cream:#FAF6EF; --paper:#FFFFFF;
+  --ink:#2B2620; --ink-muted:#6B6357;
+  --income:#3A7D44; --income-bg:#EAF4EB;
+  --expense:#A6521B; --expense-bg:#FBEEE4;
+  --border:#E5DFD2;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--cream);color:var(--ink);font-family:'Public Sans',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:60px;}
+.nums{font-variant-numeric:tabular-nums;}
+.header{background:var(--green);padding:36px 20px 44px;text-align:center;position:relative;}
+.header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:14px;background:var(--cream);border-radius:50% 50% 0 0/100% 100% 0 0;}
+.header .eyebrow{font-size:11px;letter-spacing:2px;color:var(--gold-light);font-weight:700;text-transform:uppercase;margin-bottom:8px;}
+.header h1{font-family:'Fraunces',serif;font-size:26px;color:#fff;font-weight:600;margin-bottom:4px;}
+.header .sub{font-size:13px;color:rgba(255,255,255,0.6);}
+.wrap{max-width:480px;margin:0 auto;padding:0 16px;}
+.totals-card{background:var(--green);border-radius:16px;padding:24px;margin-top:-30px;position:relative;z-index:2;box-shadow:0 8px 24px rgba(27,67,50,0.25);}
+.totals-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
+.totals-row:last-child{margin-bottom:0;padding-top:14px;border-top:1px solid rgba(255,255,255,0.15);}
+.totals-label{font-size:13px;color:rgba(255,255,255,0.65);}
+.totals-value{font-family:'Fraunces',serif;font-size:20px;font-weight:600;color:#fff;}
+.totals-value.income{color:#8FD9A0;}
+.totals-value.expense{color:#F0A876;}
+.net-label{font-size:14px;color:var(--gold-light);font-weight:600;}
+.net-value{font-family:'Fraunces',serif;font-size:30px;font-weight:700;color:#fff;position:relative;}
+.net-value::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;background:var(--gold);border-radius:2px;box-shadow:0 4px 0 -2px var(--gold);}
+
+.section{margin-top:32px;}
+.section-title{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--green);margin-bottom:2px;}
+.section-sub{font-size:12px;color:var(--ink-muted);margin-bottom:14px;}
+
+.category-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.category-card{background:var(--paper);border:1px solid var(--border);border-radius:10px;padding:12px;}
+.category-card .cat-name{font-size:11px;color:var(--ink-muted);margin-bottom:4px;}
+.category-card .cat-amount{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--green);}
+
+.ledger{background:var(--paper);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.ledger-row{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border);gap:10px;}
+.ledger-row:last-child{border-bottom:none;}
+.ledger-left{flex:1;min-width:0;}
+.ledger-name{font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ledger-meta{font-size:11px;color:var(--ink-muted);margin-top:2px;}
+.ledger-amount{font-family:'Fraunces',serif;font-size:15px;font-weight:600;white-space:nowrap;}
+.ledger-amount.income{color:var(--income);}
+.ledger-amount.expense{color:var(--expense);}
+.tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;padding:2px 7px;border-radius:99px;margin-right:6px;}
+.tag.income{background:var(--income-bg);color:var(--income);}
+.tag.expense{background:var(--expense-bg);color:var(--expense);}
+.tag.pending{background:#FDF3DC;color:var(--gold);}
+
+.empty{text-align:center;padding:30px 16px;color:var(--ink-muted);font-size:13px;}
+.load-state{text-align:center;padding:40px;color:var(--ink-muted);font-size:13px;}
+.filter-row{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;}
+.filter-chip{flex-shrink:0;font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;border:1px solid var(--border);background:var(--paper);color:var(--ink-muted);cursor:pointer;white-space:nowrap;}
+.filter-chip.active{background:var(--green);border-color:var(--green);color:#fff;}
+footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">St. Charles Catholic Church, Owhase</div>
+  <h1>Harvest of Unstoppable Blessings</h1>
+  <div class="sub">Every offering, openly recorded</div>
+</div>
+
+<div class="wrap">
+  <div class="totals-card" id="totalsCard">
+    <div class="totals-row"><span class="totals-label">Total Income</span><span class="totals-value income nums" id="totalIncome">—</span></div>
+    <div class="totals-row"><span class="totals-label">Total Expenditure</span><span class="totals-value expense nums" id="totalExpense">—</span></div>
+    <div class="totals-row"><span class="net-label">Net Balance</span><span class="net-value nums" id="netBalance">—</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">By Category</div>
+    <div class="section-sub">Income breakdown across every giving category</div>
+    <div class="category-grid" id="categoryGrid"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Pledges</div>
+    <div class="section-sub">Promised, awaiting payment</div>
+    <div class="ledger" id="pledgesLedger"><div class="load-state">Loading…</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Full Ledger</div>
+    <div class="section-sub">Every entry, most recent first</div>
+    <div class="filter-row" id="filterRow">
+      <div class="filter-chip active" data-filter="all">All</div>
+      <div class="filter-chip" data-filter="income">Income</div>
+      <div class="filter-chip" data-filter="expense">Expenditure</div>
+    </div>
+    <div class="ledger" id="entriesLedger"><div class="load-state">Loading…</div></div>
+  </div>
+
+  <footer>St. Charles Catholic Church, Owhase — Harvest Committee · Recorded in real time</footer>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ylfrayqilqflchngyzsu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZnJheXFpbHFmbGNobmd5enN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMzU2NTgsImV4cCI6MjA5ODgxMTY1OH0.37RcpavNXJqJBy5TsSsbTDFqaOasCZbwpdRi15FMNrQ';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function naira(n){ return '₦' + Number(n).toLocaleString('en-NG', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); }
+
+let ALL_ENTRIES = [];
+let currentFilter = 'all';
+
+async function load(){
+  const [{data:entries}, {data:pledges}] = await Promise.all([
+    sb.from('entries').select('*').order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('pledges').select('*').order('pledge_date',{ascending:false}),
+  ]);
+  ALL_ENTRIES = entries || [];
+  renderTotals(ALL_ENTRIES);
+  renderCategories(ALL_ENTRIES);
+  renderEntries(ALL_ENTRIES);
+  renderPledges(pledges || []);
+}
+
+function renderTotals(entries){
+  const income = entries.filter(e=>e.type==='income').reduce((s,e)=>s+Number(e.amount),0);
+  const expense = entries.filter(e=>e.type==='expense').reduce((s,e)=>s+Number(e.amount),0);
+  document.getElementById('totalIncome').textContent = naira(income);
+  document.getElementById('totalExpense').textContent = naira(expense);
+  document.getElementById('netBalance').textContent = naira(income-expense);
+}
+
+function renderCategories(entries){
+  const income = entries.filter(e=>e.type==='income');
+  const cats = {};
+  income.forEach(e=>{ cats[e.category] = (cats[e.category]||0) + Number(e.amount); });
+  const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const grid = document.getElementById('categoryGrid');
+  if(sorted.length===0){ grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">No income recorded yet.</div>'; return; }
+  grid.innerHTML = sorted.map(([cat,amt])=>`
+    <div class="category-card">
+      <div class="cat-name">${esc(cat)}</div>
+      <div class="cat-amount nums">${naira(amt)}</div>
+    </div>`).join('');
+}
+
+function renderEntries(entries){
+  const filtered = currentFilter==='all' ? entries : entries.filter(e=>e.type===currentFilter);
+  const el = document.getElementById('entriesLedger');
+  if(filtered.length===0){ el.innerHTML = '<div class="empty">No entries yet — the ledger will fill in as the harvest committee records each offering.</div>'; return; }
+  el.innerHTML = filtered.map(e=>`
+    <div class="ledger-row">
+      <div class="ledger-left">
+        <div class="ledger-name">${esc(e.name || e.category)}</div>
+        <div class="ledger-meta">
+          <span class="tag ${e.type}">${e.type==='income'?'In':'Out'}</span>
+          ${esc(e.category)}${e.payment_method?' · '+esc(e.payment_method):''} · ${fmtDate(e.entry_date)}
+        </div>
+      </div>
+      <div class="ledger-amount ${e.type} nums">${e.type==='income'?'+':'−'}${naira(e.amount)}</div>
+    </div>`).join('');
+}
+
+function renderPledges(pledges){
+  const pending = pledges.filter(p=>p.status==='pending');
+  const el = document.getElementById('pledgesLedger');
+  if(pending.length===0){ el.innerHTML = '<div class="empty">No outstanding pledges right now.</div>'; return; }
+  el.innerHTML = pending.map(p=>`
+    <div class="ledger-row">
+      <div class="ledger-left">
+        <div class="ledger-name">${esc(p.name)}</div>
+        <div class="ledger-meta"><span class="tag pending">Pending</span>${esc(p.category)} · Pledged ${fmtDate(p.pledge_date)}</div>
+      </div>
+      <div class="ledger-amount nums" style="color:var(--gold);">${naira(p.amount)}</div>
+    </div>`).join('');
+}
+
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+document.getElementById('filterRow').addEventListener('click', (e)=>{
+  const chip = e.target.closest('.filter-chip');
+  if(!chip) return;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  currentFilter = chip.dataset.filter;
+  renderEntries(ALL_ENTRIES);
+});
+
+load();
+</script>
+</body>
+</html>

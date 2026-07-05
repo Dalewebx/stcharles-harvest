@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Harvest of Unstoppable Blessings — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --green:#1B4332; --green-light:#2D6A4F;
+  --gold:#C68A2E; --gold-light:#E8C77E;
+  --cream:#FAF6EF; --paper:#FFFFFF;
+  --ink:#2B2620; --ink-muted:#6B6357;
+  --income:#3A7D44; --income-bg:#EAF4EB;
+  --expense:#A6521B; --expense-bg:#FBEEE4;
+  --border:#E5DFD2; --error:#B3261E; --error-bg:#FCEBEA;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--cream);color:var(--ink);font-family:'Public Sans',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;}
+.nums{font-variant-numeric:tabular-nums;}
+.wrap{max-width:480px;margin:0 auto;padding:24px 16px 60px;}
+.header{text-align:center;margin-bottom:24px;}
+.header .eyebrow{font-size:11px;letter-spacing:2px;color:var(--gold);font-weight:700;text-transform:uppercase;margin-bottom:6px;}
+.header h1{font-family:'Fraunces',serif;font-size:22px;color:var(--green);font-weight:600;}
+
+#loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;}
+.pin-card{background:var(--paper);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:100%;max-width:320px;}
+.pin-card h2{font-family:'Fraunces',serif;font-size:18px;color:var(--green);margin-bottom:6px;}
+.pin-card p{font-size:13px;color:var(--ink-muted);margin-bottom:18px;}
+input[type=password],input[type=text],input[type=number],select,textarea{
+  width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;
+  font-size:15px;font-family:inherit;color:var(--ink);background:#fff;margin-bottom:12px;
+}
+input[type=date]{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;margin-bottom:12px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);}
+.btn{display:block;width:100%;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;}
+.btn-primary{background:var(--green);color:#fff;}
+.btn-primary:disabled{opacity:0.6;}
+.btn-outline{background:none;border:1.5px solid var(--green);color:var(--green);}
+.err-box{background:var(--error-bg);color:var(--error);font-size:12.5px;padding:10px 12px;border-radius:8px;margin-bottom:12px;text-align:left;}
+.ok-box{background:var(--income-bg);color:var(--income);font-size:12.5px;padding:10px 12px;border-radius:8px;margin-bottom:12px;text-align:left;}
+
+#mainApp{display:none;}
+.session-bar{display:flex;justify-content:space-between;align-items:center;background:var(--green);color:#fff;border-radius:12px;padding:12px 16px;margin-bottom:20px;}
+.session-bar .who{font-size:13px;}
+.session-bar .who strong{display:block;font-size:14px;}
+.logout-btn{background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;cursor:pointer;}
+
+.tabs{display:flex;gap:6px;margin-bottom:18px;}
+.tab-btn{flex:1;font-size:13px;font-weight:700;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--paper);color:var(--ink-muted);cursor:pointer;}
+.tab-btn.active{background:var(--green);border-color:var(--green);color:#fff;}
+.panel{display:none;}
+.panel.active{display:block;}
+
+.card{background:var(--paper);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;}
+.card h3{font-family:'Fraunces',serif;font-size:15px;color:var(--green);margin-bottom:14px;}
+label{display:block;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:0.3px;text-transform:uppercase;margin-bottom:5px;}
+.type-toggle{display:flex;gap:8px;margin-bottom:12px;}
+.type-toggle button{flex:1;border:1.5px solid var(--border);background:#fff;border-radius:10px;padding:11px;font-weight:700;font-size:13px;color:var(--ink-muted);cursor:pointer;}
+.type-toggle button.active.income{background:var(--income-bg);border-color:var(--income);color:var(--income);}
+.type-toggle button.active.expense{background:var(--expense-bg);border-color:var(--expense);color:var(--expense);}
+
+.pledge-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;gap:10px;}
+.pledge-info{flex:1;min-width:0;}
+.pledge-name{font-weight:700;font-size:13.5px;}
+.pledge-meta{font-size:11px;color:var(--ink-muted);margin-top:2px;}
+.fulfill-btn{flex-shrink:0;background:var(--gold);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+.empty{text-align:center;padding:24px;color:var(--ink-muted);font-size:13px;}
+
+.recent-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.recent-row:last-child{border-bottom:none;}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-sheet{background:var(--cream);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:22px 18px 30px;}
+.modal-sheet h3{font-family:'Fraunces',serif;color:var(--green);margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="header">
+    <div class="eyebrow">St. Charles Catholic Church, Owhase</div>
+    <h1>Harvest of Unstoppable Blessings — Admin</h1>
+  </div>
+
+  <div id="loginScreen">
+    <div class="pin-card">
+      <h2 id="loginTitle">Enter your username</h2>
+      <p id="loginSub">The one given to you by the committee</p>
+      <div id="loginErr"></div>
+
+      <!-- Step 1: username -->
+      <div id="usernameStep">
+        <input type="text" id="usernameInput" placeholder="e.g. HarvestChairman" autocapitalize="none" autocorrect="off"/>
+        <button class="btn btn-primary" id="usernameBtn" onclick="checkUsername()">Continue</button>
+      </div>
+
+      <!-- Step 2a: first-time PIN setup -->
+      <div id="setupStep" style="display:none;">
+        <p style="font-size:12.5px;color:var(--ink-muted);margin-bottom:10px;text-align:left;">This is your first time logging in. Choose a PIN you'll remember — you'll use this same one every time from now on.</p>
+        <input type="password" id="setupPin" placeholder="Choose a PIN (4-6 digits)" inputmode="numeric" maxlength="8"/>
+        <input type="password" id="setupPinConfirm" placeholder="Type it again to confirm" inputmode="numeric" maxlength="8"/>
+        <button class="btn btn-primary" id="setupBtn" onclick="doClaimAccount()">Set My PIN</button>
+      </div>
+
+      <!-- Step 2b: normal returning login -->
+      <div id="pinStep" style="display:none;">
+        <input type="password" id="pinInput" placeholder="Your PIN" inputmode="numeric" maxlength="8"/>
+        <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">Log In</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainApp">
+    <div class="session-bar">
+      <div class="who">Logged in as<strong id="whoName"></strong></div>
+      <button class="logout-btn" onclick="logout()">Log out</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="entry" onclick="switchTab('entry')">New Entry</button>
+      <button class="tab-btn" data-tab="pledge" onclick="switchTab('pledge')">Pledges</button>
+      <button class="tab-btn" data-tab="recent" onclick="switchTab('recent')">Recent</button>
+    </div>
+
+    <div class="panel active" id="panel-entry">
+      <div class="card">
+        <h3>Record a Transaction</h3>
+        <div id="entryErr"></div>
+        <div id="entryOk"></div>
+        <div class="type-toggle">
+          <button type="button" id="typeIncomeBtn" class="active income" onclick="setEntryType('income')">Income</button>
+          <button type="button" id="typeExpenseBtn" onclick="setEntryType('expense')">Expenditure</button>
+        </div>
+        <label>Category</label>
+        <select id="entryCategory"></select>
+        <label>Name (optional)</label>
+        <input type="text" id="entryName" placeholder="e.g. Daniel Okafor"/>
+        <label>Amount (₦)</label>
+        <input type="number" id="entryAmount" placeholder="0.00" inputmode="decimal"/>
+        <label>Payment Method</label>
+        <select id="entryMethod">
+          <option value="">— Not specified —</option>
+          <option>Cash</option>
+          <option>Transfer</option>
+          <option>POS</option>
+          <option>Cheque</option>
+          <option>Other</option>
+        </select>
+        <label>Date</label>
+        <input type="date" id="entryDate"/>
+        <label>Note (optional)</label>
+        <textarea id="entryNote" rows="2" placeholder="Any extra detail"></textarea>
+        <button class="btn btn-primary" id="entrySubmitBtn" onclick="submitEntry()">Save Entry</button>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-pledge">
+      <div class="card">
+        <h3>Log a New Pledge</h3>
+        <div id="pledgeErr"></div>
+        <div id="pledgeOk"></div>
+        <label>Category</label>
+        <select id="pledgeCategory"></select>
+        <label>Name</label>
+        <input type="text" id="pledgeName" placeholder="Who pledged"/>
+        <label>Amount Pledged (₦)</label>
+        <input type="number" id="pledgeAmount" placeholder="0.00" inputmode="decimal"/>
+        <label>Date</label>
+        <input type="date" id="pledgeDate"/>
+        <button class="btn btn-primary" id="pledgeSubmitBtn" onclick="submitPledge()">Save Pledge</button>
+      </div>
+      <div class="card">
+        <h3>Outstanding Pledges</h3>
+        <div id="pendingPledgesList"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-recent">
+      <div class="card">
+        <h3>Last 15 Entries</h3>
+        <div id="recentList"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="fulfillModal">
+  <div class="modal-sheet">
+    <h3>Mark Pledge Fulfilled</h3>
+    <div id="fulfillErr"></div>
+    <p style="font-size:13px;color:var(--ink-muted);margin-bottom:14px;" id="fulfillPledgeInfo"></p>
+    <label>Amount Received (₦)</label>
+    <input type="number" id="fulfillAmount" inputmode="decimal"/>
+    <label>Payment Method</label>
+    <select id="fulfillMethod">
+      <option value="">— Not specified —</option>
+      <option>Cash</option>
+      <option>Transfer</option>
+      <option>POS</option>
+      <option>Cheque</option>
+      <option>Other</option>
+    </select>
+    <button class="btn btn-primary" id="fulfillSubmitBtn" onclick="confirmFulfill()">Confirm Payment Received</button>
+    <button class="btn btn-outline" style="margin-top:8px;" onclick="closeFulfillModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+const API = '';
+const SUPABASE_URL = 'https://ylfrayqilqflchngyzsu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZnJheXFpbHFmbGNobmd5enN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMzU2NTgsImV4cCI6MjA5ODgxMTY1OH0.37RcpavNXJqJBy5TsSsbTDFqaOasCZbwpdRi15FMNrQ';
+
+const CATEGORIES = [
+  'Family Harvesting','Harvest Levy','Group/Society Contribution','Item Sponsorship',
+  'Table/Open Collection','Bank Transfer/Online Giving','Souvenir/Programme Sales',
+  'Raffle/Draw Sales','Miscellaneous'
+];
+const EXPENSE_CATEGORIES = [
+  'Decoration','Feeding/Refreshments','Printing','Music/Entertainment',
+  'Logistics','Souvenirs Purchased','Miscellaneous'
+];
+
+let SESSION = null;
+let entryType = 'income';
+let PENDING_USERNAME = '';
+
+function naira(n){ return '₦' + Number(n).toLocaleString('en-NG'); }
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+async function checkUsername(){
+  const username = document.getElementById('usernameInput').value.trim();
+  const errEl = document.getElementById('loginErr');
+  const btn = document.getElementById('usernameBtn');
+  errEl.innerHTML = '';
+  if(!username){ errEl.innerHTML = '<div class="err-box">Please enter your username.</div>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try{
+    const res = await fetch(API+'/api/check-username', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username}) });
+    const data = await res.json();
+    if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error||'Username not recognized.')}</div>`; return; }
+
+    PENDING_USERNAME = username;
+    document.getElementById('usernameStep').style.display = 'none';
+
+    if(data.needsSetup){
+      document.getElementById('loginTitle').textContent = `Welcome, ${data.name}`;
+      document.getElementById('loginSub').textContent = 'Let\'s set up your PIN';
+      document.getElementById('setupStep').style.display = 'block';
+      document.getElementById('setupPin').focus();
+    } else {
+      document.getElementById('loginTitle').textContent = `Welcome back, ${data.name}`;
+      document.getElementById('loginSub').textContent = data.role;
+      document.getElementById('pinStep').style.display = 'block';
+      document.getElementById('pinInput').focus();
+    }
+  }catch(e){
+    errEl.innerHTML = '<div class="err-box">Could not reach the server. Check your connection.</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Continue';
+  }
+}
+
+async function doClaimAccount(){
+  const errEl = document.getElementById('loginErr');
+  const btn = document.getElementById('setupBtn');
+  errEl.innerHTML = '';
+  const pin = document.getElementById('setupPin').value.trim();
+  const confirmPin = document.getElementById('setupPinConfirm').value.trim();
+
+  if(pin.length < 4){ errEl.innerHTML = '<div class="err-box">PIN must be at least 4 digits.</div>'; return; }
+  if(pin !== confirmPin){ errEl.innerHTML = '<div class="err-box">PINs do not match. Please try again.</div>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    const res = await fetch(API+'/api/claim-account', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:PENDING_USERNAME, pin}) });
+    const data = await res.json();
+    if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error)}</div>`; return; }
+    enterApp(data.name, data.role, PENDING_USERNAME, pin);
+  }catch(e){
+    errEl.innerHTML = '<div class="err-box">Could not reach the server. Check your connection.</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Set My PIN';
+  }
+}
+
+async function doLogin(){
+  const errEl = document.getElementById('loginErr');
+  const btn = document.getElementById('loginBtn');
+  errEl.innerHTML = '';
+  const pin = document.getElementById('pinInput').value.trim();
+  if(!pin){ errEl.innerHTML = '<div class="err-box">Please enter your PIN.</div>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try{
+    const res = await fetch(API+'/api/verify-pin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:PENDING_USERNAME, pin}) });
+    const data = await res.json();
+    if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error||'Incorrect PIN.')}</div>`; return; }
+    enterApp(data.name, data.role, PENDING_USERNAME, pin);
+  }catch(e){
+    errEl.innerHTML = '<div class="err-box">Could not reach the server. Check your connection.</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Log In';
+  }
+}
+
+function enterApp(name, role, username, pin){
+  SESSION = { username, pin, name, role };
+  document.getElementById('whoName').textContent = name + ' · ' + role;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  populateCategorySelects();
+  loadPendingPledges();
+  loadRecent();
+}
+
+function logout(){
+  SESSION = null;
+  PENDING_USERNAME = '';
+  document.getElementById('usernameInput').value = '';
+  document.getElementById('setupPin').value = '';
+  document.getElementById('setupPinConfirm').value = '';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('usernameStep').style.display = 'block';
+  document.getElementById('setupStep').style.display = 'none';
+  document.getElementById('pinStep').style.display = 'none';
+  document.getElementById('loginTitle').textContent = 'Enter your username';
+  document.getElementById('loginSub').textContent = 'The one given to you by the committee';
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+function populateCategorySelects(){
+  const incomeOpts = CATEGORIES.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('entryCategory').innerHTML = incomeOpts;
+  document.getElementById('pledgeCategory').innerHTML = incomeOpts;
+  document.getElementById('entryDate').value = todayStr();
+  document.getElementById('pledgeDate').value = todayStr();
+}
+
+function setEntryType(type){
+  entryType = type;
+  document.getElementById('typeIncomeBtn').classList.toggle('active', type==='income');
+  document.getElementById('typeExpenseBtn').classList.toggle('active', type==='expense');
+  document.getElementById('entryCategory').innerHTML = (type==='income'?CATEGORIES:EXPENSE_CATEGORIES).map(c=>`<option>${c}</option>`).join('');
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  if(tab==='pledge') loadPendingPledges();
+  if(tab==='recent') loadRecent();
+}
+
+async function submitEntry(){
+  const errEl = document.getElementById('entryErr'), okEl = document.getElementById('entryOk');
+  const btn = document.getElementById('entrySubmitBtn');
+  errEl.innerHTML=''; okEl.innerHTML='';
+  const category = document.getElementById('entryCategory').value;
+  const name = document.getElementById('entryName').value.trim();
+  const amount = document.getElementById('entryAmount').value;
+  const payment_method = document.getElementById('entryMethod').value;
+  const entry_date = document.getElementById('entryDate').value;
+  const note = document.getElementById('entryNote').value.trim();
+
+  if(!amount || Number(amount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    const res = await fetch(API+'/api/add-entry', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username:SESSION.username, pin:SESSION.pin, entry_date, type:entryType, category, name, amount, payment_method, note })
+    });
+    const data = await res.json();
+    if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error)}</div>`; return; }
+    okEl.innerHTML = `<div class="ok-box">✓ Saved: ${entryType==='income'?'+':'−'}${naira(amount)} — ${esc(category)}</div>`;
+    document.getElementById('entryName').value='';
+    document.getElementById('entryAmount').value='';
+    document.getElementById('entryNote').value='';
+  }catch(e){
+    errEl.innerHTML = '<div class="err-box">Could not reach the server. Check your connection.</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Save Entry';
+  }
+}
+
+async function submitPledge(){
+  const errEl = document.getElementById('pledgeErr'), okEl = document.getElementById('pledgeOk');
+  const btn = document.getElementById('pledgeSubmitBtn');
+  errEl.innerHTML=''; okEl.innerHTML='';
+  const category = document.getElementById('pledgeCategory').value;
+  const name = document.getElementById('pledgeName').value.trim();
+  const amount = document.getElementById('pledgeAmount').value;
+  const pledge_date = document.getElementById('pledgeDate').value;
+
+  if(!name){ errEl.innerHTML = '<div class="err-box">Please enter who is pledging.</div>'; return; }
+  if(!amount || Number(amount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    const res = await fetch(API+'/api/add-pledge', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username:SESSION.username, pin:SESSION.pin, pledge_date, category, name, amount })
+    });
+    const data = await res.json();
+    if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error)}</div>`; return; }
+    okEl.innerHTML = `<div class="ok-box">✓ Pledge saved for ${esc(name)}</div>`;
+    document.getElementById('pledgeName').value='';
+    document.getElementById('pledgeAmount').value='';
+    loadPendingPledges();
+  }catch(e){
+    errEl.innerHTML = '<div class="err-box">Could not reach the server. Check your connection.</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Save Pledge';
+  }
+}
+
+let ACTIVE_PLEDGE = null;
+async function loadPendingPledges(){
+  const el = document.getElementById('pendingPledgesList');
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/pledges?status=eq.pending&select=*&order=pledge_date.desc`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer '+SUPABASE_ANON_KEY }
+    });
+    const pledges = await res.json();
+    if(!Array.isArray(pledges) || pledges.length===0){ el.innerHTML = '<div class="empty">No outstanding pledges.</div>'; return; }
+    el.innerHTML = pledges.map((p,i)=>`
+      <div class="pledge-row">
+        <div class="pledge-info">
+          <div class="pledge-name">${esc(p.name)}</div>
+          <div class="pledge-meta">${esc(p.category)} · ${naira(p.amount)} · ${new Date(p.pledge_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>
+        </div>
+        <button class="fulfill-btn" onclick="openFulfillModalByIndex(${i})">Mark Paid</button>
+      </div>`).join('');
+    window.__PENDING_PLEDGES = pledges;
+  }catch(e){ el.innerHTML = '<div class="empty">Could not load pledges.</div>'; }
+}
+function openFulfillModalByIndex(i){ openFulfillModal(window.__PENDING_PLEDGES[i]); }
+
+function openFulfillModal(pledge){
+  ACTIVE_PLEDGE = pledge;
+  document.getElementById('fulfillPledgeInfo').textContent = `${pledge.name} — pledged ${naira(pledge.amount)} for ${pledge.category}`;
+  document.getElementById('fulfillAmount').value = pledge.amount;
+  document.getElementById('fulfillErr').innerHTML = '';
+  document.getElementById('fulfillModal').classList.add('open');
+}
+function closeFulfillModal(){
+  document.getElementById('fulfillModal').classList.remove('open');
+  ACTIVE_PLEDGE = null;
+}
+async function confirmFulfill(){
+  if(!ACTIVE_PLEDGE) return;
+  const errEl = document.getElementById('fulfillErr');
+  const btn = document.getElementById('fulfillSubmitBtn');
+  errEl.innerHTML = '';
+  const amount = document.getElementById('fulfillAmount').value;
+  const payment_method = document.getElementById('fulfillMethod').value;
+  if(!amount || Number(amount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    const res = await fetch(API+'/api/fulfill-pledge', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username:SESSION.username, pin:SESSION.pin, pledge_id:ACTIVE_PLEDGE.id, amount, payment_method })
+    });
+    const data = await res.json();
+    if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error)}</div>`; return; }
+    closeFulfillModal();
+    loadPendingPledges();
+    loadRecent();
+  }catch(e){
+    errEl.innerHTML = '<div class="err-box">Could not reach the server. Check your connection.</div>';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Confirm Payment Received';
+  }
+}
+
+async function loadRecent(){
+  const el = document.getElementById('recentList');
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/entries?select=*&order=created_at.desc&limit=15`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer '+SUPABASE_ANON_KEY }
+    });
+    const rows = await res.json();
+    if(!Array.isArray(rows) || rows.length===0){ el.innerHTML = '<div class="empty">No entries yet.</div>'; return; }
+    el.innerHTML = rows.map(r=>`
+      <div class="recent-row">
+        <span>${esc(r.name||r.category)} <span style="color:var(--ink-muted);">· ${esc(r.created_by_name)}</span></span>
+        <span class="nums" style="color:${r.type==='income'?'var(--income)':'var(--expense)'};font-weight:700;">${r.type==='income'?'+':'−'}${naira(r.amount)}</span>
+      </div>`).join('');
+  }catch(e){ el.innerHTML = '<div class="empty">Could not load recent entries.</div>'; }
+}
+
+document.getElementById('pinInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>
