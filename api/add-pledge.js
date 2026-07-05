@@ -13,6 +13,9 @@ module.exports = async function handler(req, res) {
   if (!category) return res.status(400).json({ error: 'Category required' });
   if (!name) return res.status(400).json({ error: 'Name required for a pledge' });
   if (!amount || isNaN(amount) || Number(amount) <= 0) return res.status(400).json({ error: 'A valid amount is required' });
+  const resolvedDate = pledge_date || new Date().toISOString().slice(0, 10);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (resolvedDate > todayStr) return res.status(400).json({ error: 'The date cannot be ahead of today.' });
 
   try {
     const admin = await verifyLogin(username, pin);
@@ -30,7 +33,7 @@ module.exports = async function handler(req, res) {
         Prefer: 'return=representation',
       },
       body: JSON.stringify({
-        pledge_date: pledge_date || new Date().toISOString().slice(0, 10),
+        pledge_date: resolvedDate,
         category,
         name,
         amount: Number(amount),
