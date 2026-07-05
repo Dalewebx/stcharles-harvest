@@ -133,21 +133,50 @@ label{display:block;font-size:11px;font-weight:700;color:var(--ink-muted);letter
           <button type="button" id="typeIncomeBtn" class="active income" onclick="setEntryType('income')">Income</button>
           <button type="button" id="typeExpenseBtn" onclick="setEntryType('expense')">Expenditure</button>
         </div>
-        <label>Category</label>
-        <select id="entryCategory"></select>
-        <label>Name (optional)</label>
-        <input type="text" id="entryName" placeholder="e.g. Daniel Okafor"/>
-        <label>Amount (₦)</label>
-        <input type="number" id="entryAmount" placeholder="0.00" inputmode="decimal"/>
-        <label>Payment Method</label>
-        <select id="entryMethod">
-          <option value="">— Not specified —</option>
-          <option>Cash</option>
-          <option>Transfer</option>
-          <option>POS</option>
-          <option>Cheque</option>
-          <option>Other</option>
-        </select>
+
+        <!-- INCOME ONLY -->
+        <div id="incomeOnlyFields">
+          <label>Category</label>
+          <select id="entryCategory" onchange="onCategoryChange()">
+            <option>Family Harvesting</option>
+            <option>Harvest Levy</option>
+            <option value="Other">Other</option>
+          </select>
+          <div id="otherCategoryWrap" style="display:none;">
+            <label>Specify Category</label>
+            <input type="text" id="entryCategoryOther" placeholder="Type the category"/>
+          </div>
+          <label>Name</label>
+          <input type="text" id="entryName" placeholder="e.g. Daniel Okafor"/>
+          <label>Payment Method</label>
+          <select id="entryMethod" onchange="onMethodChange()">
+            <option value="Cash">Cash</option>
+            <option value="Transfer">Transfer</option>
+            <option value="Cash and Transfer">Cash and Transfer</option>
+            <option value="Cheque">Cheque</option>
+          </select>
+        </div>
+
+        <!-- EXPENSE ONLY -->
+        <div id="expenseOnlyFields" style="display:none;">
+          <label>What is this for?</label>
+          <input type="text" id="expenseWhatFor" placeholder="e.g. Canopy rental, decoration, feeding"/>
+        </div>
+
+        <!-- Shared single amount (income: Cash/Transfer/Cheque · expense: always) -->
+        <div id="singleAmountWrap">
+          <label>Amount (₦)</label>
+          <input type="number" id="entryAmount" placeholder="0.00" inputmode="decimal"/>
+        </div>
+
+        <!-- Income + Cash and Transfer only -->
+        <div id="splitAmountWrap" style="display:none;">
+          <label>Cash Amount (₦)</label>
+          <input type="number" id="entryAmountCash" placeholder="0.00" inputmode="decimal"/>
+          <label>Transfer Amount (₦)</label>
+          <input type="number" id="entryAmountTransfer" placeholder="0.00" inputmode="decimal"/>
+        </div>
+
         <label>Date</label>
         <input type="date" id="entryDate"/>
         <label>Note (optional)</label>
@@ -212,15 +241,7 @@ const API = '';
 const SUPABASE_URL = 'https://ylfrayqilqflchngyzsu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZnJheXFpbHFmbGNobmd5enN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMzU2NTgsImV4cCI6MjA5ODgxMTY1OH0.37RcpavNXJqJBy5TsSsbTDFqaOasCZbwpdRi15FMNrQ';
 
-const CATEGORIES = [
-  'Family Harvesting','Harvest Levy','Group/Society Contribution','Item Sponsorship',
-  'Table/Open Collection','Bank Transfer/Online Giving','Souvenir/Programme Sales',
-  'Raffle/Draw Sales','Miscellaneous'
-];
-const EXPENSE_CATEGORIES = [
-  'Decoration','Feeding/Refreshments','Printing','Music/Entertainment',
-  'Logistics','Souvenirs Purchased','Miscellaneous'
-];
+const CATEGORIES = ['Family Harvesting','Harvest Levy','Other'];
 
 let SESSION = null;
 let entryType = 'income';
@@ -334,18 +355,39 @@ function logout(){
 }
 
 function populateCategorySelects(){
-  const incomeOpts = CATEGORIES.map(c=>`<option>${c}</option>`).join('');
-  document.getElementById('entryCategory').innerHTML = incomeOpts;
-  document.getElementById('pledgeCategory').innerHTML = incomeOpts;
-  document.getElementById('entryDate').value = todayStr();
-  document.getElementById('pledgeDate').value = todayStr();
+  // entryCategory is now static HTML (Family Harvesting / Harvest Levy / Other)
+  document.getElementById('pledgeCategory').innerHTML = CATEGORIES.map(c=>`<option>${c}</option>`).join('');
+  const today = todayStr();
+  document.getElementById('entryDate').value = today;
+  document.getElementById('entryDate').max = today; // can't backdate into the future
+  document.getElementById('pledgeDate').value = today;
+  document.getElementById('pledgeDate').max = today;
+}
+
+function onCategoryChange(){
+  const isOther = document.getElementById('entryCategory').value === 'Other';
+  document.getElementById('otherCategoryWrap').style.display = isOther ? 'block' : 'none';
+}
+
+function onMethodChange(){
+  const isSplit = document.getElementById('entryMethod').value === 'Cash and Transfer';
+  document.getElementById('singleAmountWrap').style.display = isSplit ? 'none' : 'block';
+  document.getElementById('splitAmountWrap').style.display = isSplit ? 'block' : 'none';
 }
 
 function setEntryType(type){
   entryType = type;
   document.getElementById('typeIncomeBtn').classList.toggle('active', type==='income');
   document.getElementById('typeExpenseBtn').classList.toggle('active', type==='expense');
-  document.getElementById('entryCategory').innerHTML = (type==='income'?CATEGORIES:EXPENSE_CATEGORIES).map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('incomeOnlyFields').style.display = type==='income' ? 'block' : 'none';
+  document.getElementById('expenseOnlyFields').style.display = type==='expense' ? 'block' : 'none';
+  // Expenditure never uses the cash/transfer split — always single amount
+  if(type==='expense'){
+    document.getElementById('singleAmountWrap').style.display = 'block';
+    document.getElementById('splitAmountWrap').style.display = 'none';
+  } else {
+    onMethodChange(); // restore whatever the current payment method implies
+  }
 }
 
 function switchTab(tab){
@@ -356,33 +398,81 @@ function switchTab(tab){
   if(tab==='recent') loadRecent();
 }
 
+async function submitOneEntry(payload){
+  const res = await fetch(API+'/api/add-entry', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username:SESSION.username, pin:SESSION.pin, ...payload })
+  });
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.error || 'Could not save entry.');
+  return data;
+}
+
 async function submitEntry(){
   const errEl = document.getElementById('entryErr'), okEl = document.getElementById('entryOk');
   const btn = document.getElementById('entrySubmitBtn');
   errEl.innerHTML=''; okEl.innerHTML='';
-  const category = document.getElementById('entryCategory').value;
-  const name = document.getElementById('entryName').value.trim();
-  const amount = document.getElementById('entryAmount').value;
-  const payment_method = document.getElementById('entryMethod').value;
+
   const entry_date = document.getElementById('entryDate').value;
   const note = document.getElementById('entryNote').value.trim();
 
-  if(!amount || Number(amount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+  if(entry_date > todayStr()){ errEl.innerHTML = '<div class="err-box">The date cannot be ahead of today.</div>'; return; }
+
+  let category, name, payment_method, isSplit = false, singleAmount, cashAmount, transferAmount;
+
+  if(entryType === 'income'){
+    const catSelect = document.getElementById('entryCategory').value;
+    category = catSelect === 'Other' ? document.getElementById('entryCategoryOther').value.trim() : catSelect;
+    if(!category){ errEl.innerHTML = '<div class="err-box">Please specify the category.</div>'; return; }
+
+    name = document.getElementById('entryName').value.trim();
+    if(!name){ errEl.innerHTML = '<div class="err-box">Name is required.</div>'; return; }
+
+    payment_method = document.getElementById('entryMethod').value;
+    isSplit = payment_method === 'Cash and Transfer';
+
+    if(isSplit){
+      cashAmount = document.getElementById('entryAmountCash').value;
+      transferAmount = document.getElementById('entryAmountTransfer').value;
+      if((!cashAmount || Number(cashAmount)<=0) && (!transferAmount || Number(transferAmount)<=0)){
+        errEl.innerHTML = '<div class="err-box">Please enter at least one of the cash or transfer amounts.</div>'; return;
+      }
+    } else {
+      singleAmount = document.getElementById('entryAmount').value;
+      if(!singleAmount || Number(singleAmount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+    }
+  } else {
+    category = document.getElementById('expenseWhatFor').value.trim();
+    if(!category){ errEl.innerHTML = '<div class="err-box">Please say what this expense is for.</div>'; return; }
+    name = null;
+    payment_method = null;
+    singleAmount = document.getElementById('entryAmount').value;
+    if(!singleAmount || Number(singleAmount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+  }
 
   btn.disabled = true; btn.textContent = 'Saving…';
   try{
-    const res = await fetch(API+'/api/add-entry', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ username:SESSION.username, pin:SESSION.pin, entry_date, type:entryType, category, name, amount, payment_method, note })
-    });
-    const data = await res.json();
-    if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error)}</div>`; return; }
-    okEl.innerHTML = `<div class="ok-box">✓ Saved: ${entryType==='income'?'+':'−'}${naira(amount)} — ${esc(category)}</div>`;
+    if(isSplit){
+      if(cashAmount && Number(cashAmount)>0){
+        await submitOneEntry({ entry_date, type:'income', category, name, amount:cashAmount, payment_method:'Cash', note });
+      }
+      if(transferAmount && Number(transferAmount)>0){
+        await submitOneEntry({ entry_date, type:'income', category, name, amount:transferAmount, payment_method:'Transfer', note });
+      }
+      okEl.innerHTML = `<div class="ok-box">✓ Saved — ${esc(category)} (split: cash + transfer)</div>`;
+    } else {
+      await submitOneEntry({ entry_date, type:entryType, category, name, amount:singleAmount, payment_method, note });
+      okEl.innerHTML = `<div class="ok-box">✓ Saved: ${entryType==='income'?'+':'−'}${naira(singleAmount)} — ${esc(category)}</div>`;
+    }
     document.getElementById('entryName').value='';
     document.getElementById('entryAmount').value='';
+    document.getElementById('entryAmountCash').value='';
+    document.getElementById('entryAmountTransfer').value='';
+    document.getElementById('entryCategoryOther').value='';
+    document.getElementById('expenseWhatFor').value='';
     document.getElementById('entryNote').value='';
   }catch(e){
-    errEl.innerHTML = '<div class="err-box">Could not reach the server. Check your connection.</div>';
+    errEl.innerHTML = `<div class="err-box">${esc(e.message)}</div>`;
   }finally{
     btn.disabled = false; btn.textContent = 'Save Entry';
   }
