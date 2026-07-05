@@ -6,6 +6,7 @@
 <title>Harvest of Unstoppable Blessings — St. Charles Owhase</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --green:#1B4332; --green-light:#2D6A4F;
@@ -72,7 +73,7 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size
 <div class="header">
   <div class="eyebrow">St. Charles Catholic Church, Owhase</div>
   <h1>Harvest of Unstoppable Blessings</h1>
-  <div class="sub">Every offering, openly recorded</div>
+  <div class="sub">Harvest record</div>
 </div>
 
 <div class="wrap">
@@ -81,6 +82,8 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size
     <div class="totals-row"><span class="totals-label">Total Expenditure</span><span class="totals-value expense nums" id="totalExpense">—</span></div>
     <div class="totals-row"><span class="net-label">Net Balance</span><span class="net-value nums" id="netBalance">—</span></div>
   </div>
+
+  <button id="exportBtn" onclick="exportToExcel()" style="width:100%;margin-top:14px;background:var(--gold);color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">⬇ Download Full Record (Excel)</button>
 
   <div class="section">
     <div class="section-title">By Category</div>
@@ -105,7 +108,9 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size
     <div class="ledger" id="entriesLedger"><div class="load-state">Loading…</div></div>
   </div>
 
-  <footer>St. Charles Catholic Church, Owhase — Harvest Committee · Recorded in real time</footer>
+  <footer>St. Charles Catholic Church, Owhase — Harvest Committee · Recorded in real time<br/>
+    <a href="https://wa.me/2349056209920" style="color:var(--ink-muted);text-decoration:underline;">Built by DaleX</a>
+  </footer>
 </div>
 
 <script>
@@ -117,6 +122,7 @@ function naira(n){ return '₦' + Number(n).toLocaleString('en-NG', {minimumFrac
 function fmtDate(d){ return new Date(d).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); }
 
 let ALL_ENTRIES = [];
+let ALL_PLEDGES = [];
 let currentFilter = 'all';
 
 async function load(){
@@ -125,10 +131,11 @@ async function load(){
     sb.from('pledges').select('*').order('pledge_date',{ascending:false}),
   ]);
   ALL_ENTRIES = entries || [];
+  ALL_PLEDGES = pledges || [];
   renderTotals(ALL_ENTRIES);
   renderCategories(ALL_ENTRIES);
   renderEntries(ALL_ENTRIES);
-  renderPledges(pledges || []);
+  renderPledges(ALL_PLEDGES);
 }
 
 function renderTotals(entries){
@@ -185,6 +192,51 @@ function renderPledges(pledges){
 }
 
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function exportToExcel(){
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1 — every transaction, full detail
+  const allRows = ALL_ENTRIES.map(e => ({
+    Date: e.entry_date,
+    Type: e.type === 'income' ? 'Income' : 'Expenditure',
+    Category: e.category,
+    Name: e.name || '',
+    Amount: Number(e.amount),
+    'Payment Method': e.payment_method || '',
+    Note: e.note || '',
+    'Recorded By': e.created_by_name,
+  }));
+  const ws1 = XLSX.utils.json_to_sheet(allRows);
+  XLSX.utils.book_append_sheet(wb, ws1, 'All Transactions');
+
+  // Sheet 2 — totals by category (income only, matches the public breakdown)
+  const income = ALL_ENTRIES.filter(e => e.type === 'income');
+  const catTotals = {};
+  income.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + Number(e.amount); });
+  const catRows = Object.entries(catTotals).sort((a,b) => b[1]-a[1]).map(([cat, total]) => ({ Category: cat, 'Total Income': total }));
+  const ws2 = XLSX.utils.json_to_sheet(catRows);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Category Totals');
+
+  // Sheet 3 — who has given under each category, individually
+  const participantRows = income
+    .filter(e => e.name)
+    .sort((a,b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
+    .map(e => ({ Category: e.category, Name: e.name, Amount: Number(e.amount), Date: e.entry_date, 'Payment Method': e.payment_method || '' }));
+  const ws3 = XLSX.utils.json_to_sheet(participantRows);
+  XLSX.utils.book_append_sheet(wb, ws3, 'Participants by Category');
+
+  // Sheet 4 — pledges, both pending and fulfilled
+  const pledgeRows = (ALL_PLEDGES || []).map(p => ({
+    Name: p.name, Category: p.category, 'Amount Pledged': Number(p.amount),
+    Status: p.status === 'fulfilled' ? 'Fulfilled' : 'Pending',
+    'Pledge Date': p.pledge_date, 'Fulfilled Date': p.fulfilled_at ? p.fulfilled_at.slice(0,10) : '',
+  }));
+  const ws4 = XLSX.utils.json_to_sheet(pledgeRows);
+  XLSX.utils.book_append_sheet(wb, ws4, 'Pledges');
+
+  XLSX.writeFile(wb, 'Harvest_of_Unstoppable_Blessings_Record.xlsx');
+}
 
 document.getElementById('filterRow').addEventListener('click', (e)=>{
   const chip = e.target.closest('.filter-chip');
