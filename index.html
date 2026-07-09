@@ -10,8 +10,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<!-- xlsx (700kb+) is loaded lazily on demand in exportToExcel(), not upfront, no reason to make everyone's page load slower for a feature most people
-     visiting the page will never click. -->
 <style>
 :root{
   --green:#1B4332; --green-light:#2D6A4F;
@@ -99,10 +97,7 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size
 
   <div class="updated-line" id="updatedLine">Updating…</div>
 
-  <div style="display:flex;gap:8px;margin-top:14px;">
-    <button id="exportExcelBtn" onclick="exportToExcel()" style="flex:1;background:var(--gold);color:#fff;border:none;border-radius:10px;padding:12px 8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">⬇ Excel</button>
-    <button id="exportPdfBtn" onclick="exportToPDF()" style="flex:1;background:var(--green);color:#fff;border:none;border-radius:10px;padding:12px 8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">⬇ PDF</button>
-  </div>
+  <button id="exportPdfBtn" onclick="exportToPDF()" style="width:100%;margin-top:14px;background:var(--green);color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">⬇ Download Full Record (PDF)</button>
 
   <div class="section">
     <div class="section-title">By Category</div>
@@ -309,77 +304,6 @@ function renderPledges(pledges){
 }
 
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-let xlsxLoadPromise = null;
-function loadXLSX(){
-  if(window.XLSX) return Promise.resolve();
-  if(xlsxLoadPromise) return xlsxLoadPromise;
-  xlsxLoadPromise = new Promise((resolve, reject)=>{
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-    s.onload = resolve;
-    s.onerror = () => reject(new Error('Could not load the export tool. Check your connection and try again.'));
-    document.head.appendChild(s);
-  });
-  return xlsxLoadPromise;
-}
-
-async function exportToExcel(){
-  const btn = document.getElementById('exportExcelBtn');
-  const originalText = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Preparing…';
-  try{
-    await loadXLSX();
-  }catch(e){
-    alert(e.message);
-    btn.disabled = false; btn.textContent = originalText;
-    return;
-  }
-  btn.disabled = false; btn.textContent = originalText;
-
-  const wb = XLSX.utils.book_new();
-
-  // Sheet 1: every transaction, full detail
-  const allRows = ALL_ENTRIES.map(e => ({
-    Date: e.entry_date,
-    Type: e.type === 'income' ? 'Income' : 'Expenditure',
-    Category: e.category,
-    Name: e.name || '',
-    Amount: Number(e.amount),
-    'Payment Method': e.payment_method || '',
-    Note: e.note || '',
-    'Recorded By': e.created_by_name,
-  }));
-  const ws1 = XLSX.utils.json_to_sheet(allRows);
-  XLSX.utils.book_append_sheet(wb, ws1, 'All Transactions');
-
-  // Sheet 2: totals by category (income only, matches the public breakdown)
-  const income = ALL_ENTRIES.filter(e => e.type === 'income');
-  const catTotals = {};
-  income.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + Number(e.amount); });
-  const catRows = Object.entries(catTotals).sort((a,b) => b[1]-a[1]).map(([cat, total]) => ({ Category: cat, 'Total Income': total }));
-  const ws2 = XLSX.utils.json_to_sheet(catRows);
-  XLSX.utils.book_append_sheet(wb, ws2, 'Category Totals');
-
-  // Sheet 3: who has given under each category, individually
-  const participantRows = income
-    .filter(e => e.name)
-    .sort((a,b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
-    .map(e => ({ Category: e.category, Name: e.name, Amount: Number(e.amount), Date: e.entry_date, 'Payment Method': e.payment_method || '' }));
-  const ws3 = XLSX.utils.json_to_sheet(participantRows);
-  XLSX.utils.book_append_sheet(wb, ws3, 'Participants by Category');
-
-  // Sheet 4: pledges, both pending and fulfilled
-  const pledgeRows = (ALL_PLEDGES || []).map(p => ({
-    Name: p.name, Category: p.category, 'Amount Pledged': Number(p.amount),
-    Status: p.status === 'fulfilled' ? 'Fulfilled' : 'Pending',
-    'Pledge Date': p.pledge_date, 'Fulfilled Date': p.fulfilled_at ? p.fulfilled_at.slice(0,10) : '',
-  }));
-  const ws4 = XLSX.utils.json_to_sheet(pledgeRows);
-  XLSX.utils.book_append_sheet(wb, ws4, 'Pledges');
-
-  XLSX.writeFile(wb, 'Harvest_of_Unstoppable_Blessings_Record.xlsx');
-}
 
 let jspdfLoadPromise = null;
 function loadJsPDF(){
