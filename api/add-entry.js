@@ -1,7 +1,7 @@
 // api/add-entry.js
 // Records a real transaction (income or expense). The PIN is verified again
 // here, server-side, even though the person already "logged in" on the
-// admin page — that login is just UX, this check is the actual security
+// admin page, that login is just UX; this check is the actual security
 // boundary. Nothing gets written to the database without a valid PIN
 // presented on this exact request.
 
@@ -14,7 +14,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { username, pin, entry_date, type, category, name, amount, payment_method, note } = req.body || {};
+  const { username, pin, entry_date, type, category, name, amount, payment_method, bank_account, note } = req.body || {};
   if (!username || !pin) return res.status(400).json({ error: 'Username and PIN required' });
   if (!type || !['income', 'expense'].includes(type)) return res.status(400).json({ error: 'Type must be income or expense' });
   if (!category) return res.status(400).json({ error: 'Category required' });
@@ -46,6 +46,7 @@ module.exports = async function handler(req, res) {
         name: name || null,
         amount: Number(amount),
         payment_method: payment_method || null,
+        bank_account: bank_account || null,
         note: note || null,
         created_by_name: admin.name,
       }),

@@ -1,6 +1,6 @@
 // api/fulfill-pledge.js
 // When a pledge actually gets paid, this creates the real income entry AND
-// marks the pledge fulfilled, linking the two — so anyone looking at the
+// marks the pledge fulfilled, linking the two, so anyone looking at the
 // pledge later can see exactly which transaction paid it off, rather than
 // the pledge just quietly disappearing.
 
@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { username, pin, pledge_id, amount, payment_method, entry_date } = req.body || {};
+  const { username, pin, pledge_id, amount, payment_method, bank_account, entry_date } = req.body || {};
   if (!username || !pin) return res.status(400).json({ error: 'Username and PIN required' });
   if (!pledge_id) return res.status(400).json({ error: 'pledge_id required' });
   if (!amount || isNaN(amount) || Number(amount) <= 0) return res.status(400).json({ error: 'A valid amount is required' });
@@ -52,6 +52,7 @@ module.exports = async function handler(req, res) {
         name: pledge.name,
         amount: Number(amount),
         payment_method: payment_method || null,
+        bank_account: bank_account || null,
         note: 'Fulfilled pledge from ' + pledge.pledge_date,
         created_by_name: admin.name,
       }),
