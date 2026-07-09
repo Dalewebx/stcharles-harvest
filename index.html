@@ -4,9 +4,14 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Harvest of Unstoppable Blessings — St. Charles Owhase</title>
+<link rel="preconnect" href="https://ylfrayqilqflchngyzsu.supabase.co"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- xlsx (700kb+) is loaded lazily on demand in exportToExcel(), not upfront —
+     no reason to make everyone's page load slower for a feature most people
+     visiting the page will never click. -->
 <style>
 :root{
   --green:#1B4332; --green-light:#2D6A4F;
@@ -25,6 +30,11 @@ body{background:var(--cream);color:var(--ink);font-family:'Public Sans',sans-ser
 .header .eyebrow{font-size:11px;letter-spacing:2px;color:var(--gold-light);font-weight:700;text-transform:uppercase;margin-bottom:8px;}
 .header h1{font-family:'Fraunces',serif;font-size:26px;color:#fff;font-weight:600;margin-bottom:4px;}
 .header .sub{font-size:13px;color:rgba(255,255,255,0.6);}
+.live-badge{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:10.5px;letter-spacing:0.5px;font-weight:700;color:rgba(255,255,255,0.75);text-transform:uppercase;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#6FCF7C;box-shadow:0 0 0 0 rgba(111,207,124,0.7);animation:livePulse 2s infinite;}
+.live-badge.stale .live-dot{background:var(--gold-light);animation:staleBlink 1s infinite;}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(111,207,124,0.55);}70%{box-shadow:0 0 0 7px rgba(111,207,124,0);}100%{box-shadow:0 0 0 0 rgba(111,207,124,0);}}
+@keyframes staleBlink{0%,100%{opacity:1;}50%{opacity:0.25;}}
 .wrap{max-width:480px;margin:0 auto;padding:0 16px;}
 .totals-card{background:var(--green);border-radius:16px;padding:24px;margin-top:-30px;position:relative;z-index:2;box-shadow:0 8px 24px rgba(27,67,50,0.25);}
 .totals-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
@@ -36,6 +46,8 @@ body{background:var(--cream);color:var(--ink);font-family:'Public Sans',sans-ser
 .net-label{font-size:14px;color:var(--gold-light);font-weight:600;}
 .net-value{font-family:'Fraunces',serif;font-size:30px;font-weight:700;color:#fff;position:relative;}
 .net-value::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;background:var(--gold);border-radius:2px;box-shadow:0 4px 0 -2px var(--gold);}
+.totals-value.flash,.net-value.flash{animation:goldFlash 1.1s ease;}
+@keyframes goldFlash{0%{text-shadow:0 0 0 rgba(230,199,126,0);}25%{text-shadow:0 0 16px rgba(230,199,126,0.95);}100%{text-shadow:0 0 0 rgba(230,199,126,0);}}
 
 .section{margin-top:32px;}
 .section-title{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--green);margin-bottom:2px;}
@@ -62,6 +74,7 @@ body{background:var(--cream);color:var(--ink);font-family:'Public Sans',sans-ser
 
 .empty{text-align:center;padding:30px 16px;color:var(--ink-muted);font-size:13px;}
 .load-state{text-align:center;padding:40px;color:var(--ink-muted);font-size:13px;}
+.updated-line{text-align:center;font-size:11px;color:var(--ink-muted);margin-top:10px;}
 .filter-row{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;}
 .filter-chip{flex-shrink:0;font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;border:1px solid var(--border);background:var(--paper);color:var(--ink-muted);cursor:pointer;white-space:nowrap;}
 .filter-chip.active{background:var(--green);border-color:var(--green);color:#fff;}
@@ -74,6 +87,7 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size
   <div class="eyebrow">St. Charles Catholic Church, Owhase</div>
   <h1>Harvest of Unstoppable Blessings</h1>
   <div class="sub">Harvest record</div>
+  <div class="live-badge" id="liveBadge"><span class="live-dot"></span><span id="liveBadgeText">Live</span></div>
 </div>
 
 <div class="wrap">
@@ -82,6 +96,8 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size
     <div class="totals-row"><span class="totals-label">Total Expenditure</span><span class="totals-value expense nums" id="totalExpense">—</span></div>
     <div class="totals-row"><span class="net-label">Net Balance</span><span class="net-value nums" id="netBalance">—</span></div>
   </div>
+
+  <div class="updated-line" id="updatedLine">Updating…</div>
 
   <button id="exportBtn" onclick="exportToExcel()" style="width:100%;margin-top:14px;background:var(--gold);color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">⬇ Download Full Record (Excel)</button>
 
@@ -124,26 +140,124 @@ function fmtDate(d){ return new Date(d).toLocaleDateString('en-GB', {day:'numeri
 let ALL_ENTRIES = [];
 let ALL_PLEDGES = [];
 let currentFilter = 'all';
+let isFetching = false;
+let lastGoodAt = null;
+let pollTimer = null;
+const POLL_MS = 5000;
 
-async function load(){
-  const [{data:entries}, {data:pledges}] = await Promise.all([
-    sb.from('entries').select('*').order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
-    sb.from('pledges').select('*').order('pledge_date',{ascending:false}),
+// Church wifi is often genuinely slow, not just occasionally offline. A poll
+// that hangs forever would silently stack up requests, so every fetch gets
+// an 8s ceiling — if it's not back by then, treat it as a missed beat and
+// try again on the next tick rather than freezing the page.
+async function fetchWithTimeout(promiseFn, timeoutMs = 8000){
+  return Promise.race([
+    promiseFn(),
+    new Promise((_, reject) => setTimeout(()=>reject(new Error('timeout')), timeoutMs))
   ]);
-  ALL_ENTRIES = entries || [];
-  ALL_PLEDGES = pledges || [];
-  renderTotals(ALL_ENTRIES);
-  renderCategories(ALL_ENTRIES);
-  renderEntries(ALL_ENTRIES);
-  renderPledges(ALL_PLEDGES);
 }
 
-function renderTotals(entries){
+async function load(isPoll){
+  if(isFetching) return; // never let a slow request pile up behind another
+  isFetching = true;
+  try{
+    const [{data:entries, error:e1}, {data:pledges, error:e2}] = await fetchWithTimeout(() => Promise.all([
+      sb.from('entries').select('*').order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
+      sb.from('pledges').select('*').order('pledge_date',{ascending:false}),
+    ]));
+    if(e1 || e2) throw (e1 || e2);
+
+    const changed = JSON.stringify(entries) !== JSON.stringify(ALL_ENTRIES) || JSON.stringify(pledges) !== JSON.stringify(ALL_PLEDGES);
+    ALL_ENTRIES = entries || [];
+    ALL_PLEDGES = pledges || [];
+
+    if(changed || !isPoll){
+      renderTotals(ALL_ENTRIES, changed && isPoll);
+      renderCategories(ALL_ENTRIES);
+      renderEntries(ALL_ENTRIES);
+      renderPledges(ALL_PLEDGES);
+    }
+    lastGoodAt = new Date();
+    setConnectionState('live');
+  }catch(err){
+    // Don't wipe the screen on a bad beat — keep showing the last good data,
+    // just be honest that it might be a little behind.
+    setConnectionState('stale');
+  }finally{
+    isFetching = false;
+    updateUpdatedLine();
+  }
+}
+
+function setConnectionState(state){
+  const badge = document.getElementById('liveBadge');
+  const text = document.getElementById('liveBadgeText');
+  if(state === 'live'){
+    badge.classList.remove('stale');
+    text.textContent = 'Live';
+  } else {
+    badge.classList.add('stale');
+    text.textContent = 'Reconnecting…';
+  }
+}
+
+function updateUpdatedLine(){
+  const el = document.getElementById('updatedLine');
+  if(!lastGoodAt){ el.textContent = 'Updating…'; return; }
+  const secs = Math.max(0, Math.round((Date.now() - lastGoodAt.getTime())/1000));
+  el.textContent = secs < 3 ? 'Updated just now' : `Updated ${secs}s ago`;
+}
+
+function startLiveUpdates(){
+  load(false);
+  pollTimer = setInterval(()=>load(true), POLL_MS);
+  setInterval(updateUpdatedLine, 1000);
+  // Pause polling while the tab/screen is hidden (saves data on slow
+  // connections and phone batteries), and refresh instantly the moment
+  // it's visible again rather than waiting for the next tick.
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){
+      clearInterval(pollTimer);
+    } else {
+      load(true);
+      pollTimer = setInterval(()=>load(true), POLL_MS);
+    }
+  });
+}
+
+function animateNumber(el, from, to, prefix){
+  const duration = 700, start = performance.now();
+  function tick(now){
+    const p = Math.min((now-start)/duration, 1);
+    const eased = 1 - Math.pow(1-p, 3);
+    const cur = Math.round(from + (to-from)*eased);
+    el.textContent = prefix + naira(cur).replace('₦','');
+    if(p < 1) requestAnimationFrame(tick);
+    else el.textContent = prefix + naira(to).replace('₦','');
+  }
+  requestAnimationFrame(tick);
+}
+
+function renderTotals(entries, shouldAnimate){
   const income = entries.filter(e=>e.type==='income').reduce((s,e)=>s+Number(e.amount),0);
   const expense = entries.filter(e=>e.type==='expense').reduce((s,e)=>s+Number(e.amount),0);
-  document.getElementById('totalIncome').textContent = naira(income);
-  document.getElementById('totalExpense').textContent = naira(expense);
-  document.getElementById('netBalance').textContent = naira(income-expense);
+  const net = income - expense;
+
+  setTotalValue('totalIncome', income, shouldAnimate, '₦');
+  setTotalValue('totalExpense', expense, shouldAnimate, '₦');
+  setTotalValue('netBalance', net, shouldAnimate, '₦');
+}
+
+function setTotalValue(id, value, shouldAnimate, prefix){
+  const el = document.getElementById(id);
+  const prev = Number(el.dataset.val || 0);
+  el.dataset.val = value;
+  if(shouldAnimate && prev !== value){
+    animateNumber(el, prev, value, prefix);
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+    setTimeout(()=>el.classList.remove('flash'), 1100);
+  } else {
+    el.textContent = naira(value);
+  }
 }
 
 function renderCategories(entries){
@@ -193,7 +307,33 @@ function renderPledges(pledges){
 
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-function exportToExcel(){
+let xlsxLoadPromise = null;
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve();
+  if(xlsxLoadPromise) return xlsxLoadPromise;
+  xlsxLoadPromise = new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Could not load the export tool. Check your connection and try again.'));
+    document.head.appendChild(s);
+  });
+  return xlsxLoadPromise;
+}
+
+async function exportToExcel(){
+  const btn = document.getElementById('exportBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Preparing…';
+  try{
+    await loadXLSX();
+  }catch(e){
+    alert(e.message);
+    btn.disabled = false; btn.textContent = originalText;
+    return;
+  }
+  btn.disabled = false; btn.textContent = originalText;
+
   const wb = XLSX.utils.book_new();
 
   // Sheet 1 — every transaction, full detail
@@ -247,7 +387,7 @@ document.getElementById('filterRow').addEventListener('click', (e)=>{
   renderEntries(ALL_ENTRIES);
 });
 
-load();
+startLiveUpdates();
 </script>
 </body>
 </html>
