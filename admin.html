@@ -95,7 +95,7 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
 
       <!-- Step 1: username -->
       <div id="usernameStep">
-        <input type="text" id="usernameInput" placeholder="e.g. HarvestChairman" autocapitalize="none" autocorrect="off"/>
+        <input type="text" id="usernameInput" placeholder="Your committee username" autocapitalize="none" autocorrect="off"/>
         <button class="btn btn-primary" id="usernameBtn" onclick="checkUsername()">Continue</button>
       </div>
 
@@ -111,6 +111,7 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
       <div id="pinStep" style="display:none;">
         <input type="password" id="pinInput" placeholder="Your PIN" inputmode="numeric" maxlength="8"/>
         <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">Log In</button>
+        <div id="switchUserLink" style="display:none;margin-top:12px;font-size:12px;color:var(--ink-muted);cursor:pointer;text-decoration:underline;" onclick="switchUser()">Not you? Switch account</div>
       </div>
     </div>
   </div>
@@ -118,7 +119,7 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
   <div id="splashScreen" style="display:none;">
     <div class="pin-card" style="max-width:340px;">
       <div style="font-size:34px;margin-bottom:10px;">⚠️</div>
-      <h2 style="margin-bottom:10px;">Before you save anything</h2>
+      <h2 id="splashWelcome" style="margin-bottom:10px;">Welcome</h2>
       <p style="text-align:left;margin-bottom:10px;">
         Every entry you save here appears <strong>instantly</strong> on the public harvest page — for everyone to see, in real time.
       </p>
@@ -265,6 +266,14 @@ const CATEGORIES = ['Family Harvesting','Harvest Levy','Other'];
 let SESSION = null;
 let entryType = 'income';
 let PENDING_USERNAME = '';
+const REMEMBER_KEY = 'harvest_admin_username';
+
+// The device remembers WHO uses it (just the username), never the PIN.
+// This means a returning admin only ever has to type their PIN, not
+// retype their username every single time.
+function rememberUsername(u){ try{ localStorage.setItem(REMEMBER_KEY, u); }catch(e){} }
+function getRememberedUsername(){ try{ return localStorage.getItem(REMEMBER_KEY) || ''; }catch(e){ return ''; } }
+function forgetUsername(){ try{ localStorage.removeItem(REMEMBER_KEY); }catch(e){} }
 
 function naira(n){ return '₦' + Number(n).toLocaleString('en-NG'); }
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -291,16 +300,25 @@ async function fetchWithTimeout(url, options, timeoutMs = 15000){
 
 async function checkUsername(){
   const username = document.getElementById('usernameInput').value.trim();
-  const errEl = document.getElementById('loginErr');
-  const btn = document.getElementById('usernameBtn');
-  errEl.innerHTML = '';
-  if(!username){ errEl.innerHTML = '<div class="err-box">Please enter your username.</div>'; return; }
+  if(!username){ document.getElementById('loginErr').innerHTML = '<div class="err-box">Please enter your username.</div>'; return; }
+  await resolveUsername(username, document.getElementById('usernameBtn'), 'Continue');
+}
 
-  btn.disabled = true; btn.textContent = 'Checking…';
+async function resolveUsername(username, btn, btnRestingLabel){
+  const errEl = document.getElementById('loginErr');
+  errEl.innerHTML = '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Checking…'; }
   try{
     const res = await fetchWithTimeout(API+'/api/check-username', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username}) });
     const data = await res.json();
-    if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error||'Username not recognized.')}</div>`; return; }
+    if(!res.ok){
+      errEl.innerHTML = `<div class="err-box">${esc(data.error||'Username not recognized.')}</div>`;
+      // The remembered username on this device no longer matches a real
+      // account (e.g. it was reset) — fall back to manual entry.
+      forgetUsername();
+      document.getElementById('usernameStep').style.display = 'block';
+      return;
+    }
 
     PENDING_USERNAME = username;
     document.getElementById('usernameStep').style.display = 'none';
@@ -314,13 +332,28 @@ async function checkUsername(){
       document.getElementById('loginTitle').textContent = `Welcome back, ${data.name}`;
       document.getElementById('loginSub').textContent = data.role;
       document.getElementById('pinStep').style.display = 'block';
+      document.getElementById('switchUserLink').style.display = 'block';
       document.getElementById('pinInput').focus();
     }
   }catch(e){
     errEl.innerHTML = `<div class="err-box">${esc(e.message || 'Could not reach the server. Check your connection.')}</div>`;
   }finally{
-    btn.disabled = false; btn.textContent = 'Continue';
+    if(btn){ btn.disabled = false; btn.textContent = btnRestingLabel; }
   }
+}
+
+function switchUser(){
+  forgetUsername();
+  PENDING_USERNAME = '';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinStep').style.display = 'none';
+  document.getElementById('switchUserLink').style.display = 'none';
+  document.getElementById('usernameInput').value = '';
+  document.getElementById('usernameStep').style.display = 'block';
+  document.getElementById('loginTitle').textContent = 'Enter your username';
+  document.getElementById('loginSub').textContent = 'The one given to you by the committee';
+  document.getElementById('loginErr').innerHTML = '';
+  document.getElementById('usernameInput').focus();
 }
 
 async function doClaimAccount(){
@@ -368,8 +401,10 @@ async function doLogin(){
 
 function enterApp(name, role, username, pin){
   SESSION = { username, pin, name, role };
+  rememberUsername(username);
   document.getElementById('whoName').textContent = name + ' · ' + role;
   document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('splashWelcome').textContent = `Welcome, ${name} — ${role}`;
   // Preload the data in the background while the reminder splash is up, so
   // the app feels instant the moment they hit "Continue" — no spinner after.
   populateCategorySelects();
@@ -386,18 +421,27 @@ function proceedToApp(){
 function logout(){
   SESSION = null;
   PENDING_USERNAME = '';
-  document.getElementById('usernameInput').value = '';
   document.getElementById('setupPin').value = '';
   document.getElementById('setupPinConfirm').value = '';
   document.getElementById('pinInput').value = '';
-  document.getElementById('usernameStep').style.display = 'block';
   document.getElementById('setupStep').style.display = 'none';
   document.getElementById('pinStep').style.display = 'none';
-  document.getElementById('loginTitle').textContent = 'Enter your username';
-  document.getElementById('loginSub').textContent = 'The one given to you by the committee';
+  document.getElementById('switchUserLink').style.display = 'none';
   document.getElementById('mainApp').style.display = 'none';
   document.getElementById('splashScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
+
+  const remembered = getRememberedUsername();
+  if(remembered){
+    document.getElementById('usernameInput').value = remembered;
+    document.getElementById('usernameStep').style.display = 'none';
+    resolveUsername(remembered, null, '');
+  } else {
+    document.getElementById('usernameInput').value = '';
+    document.getElementById('usernameStep').style.display = 'block';
+    document.getElementById('loginTitle').textContent = 'Enter your username';
+    document.getElementById('loginSub').textContent = 'The one given to you by the committee';
+  }
 }
 
 function populateCategorySelects(){
@@ -656,6 +700,17 @@ async function loadRecent(){
 }
 
 document.getElementById('pinInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
+
+// On page load, if this device already has a remembered admin, skip
+// straight past typing the username — go directly to "enter your PIN".
+(function initLogin(){
+  const remembered = getRememberedUsername();
+  if(remembered){
+    document.getElementById('usernameStep').style.display = 'none';
+    document.getElementById('usernameInput').value = remembered;
+    resolveUsername(remembered, null, '');
+  }
+})();
 </script>
 </body>
 </html>
