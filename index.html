@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Harvest of Unstoppable Blessings — St. Charles Owhase</title>
+<title>Harvest of Unstoppable Blessings · St. Charles Owhase</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
 <link rel="preconnect" href="https://ylfrayqilqflchngyzsu.supabase.co"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<!-- xlsx (700kb+) is loaded lazily on demand in exportToExcel(), not upfront —
-     no reason to make everyone's page load slower for a feature most people
+<!-- xlsx (700kb+) is loaded lazily on demand in exportToExcel(), not upfront, no reason to make everyone's page load slower for a feature most people
      visiting the page will never click. -->
 <style>
 :root{
@@ -92,14 +92,17 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size
 
 <div class="wrap">
   <div class="totals-card" id="totalsCard">
-    <div class="totals-row"><span class="totals-label">Total Income</span><span class="totals-value income nums" id="totalIncome">—</span></div>
-    <div class="totals-row"><span class="totals-label">Total Expenditure</span><span class="totals-value expense nums" id="totalExpense">—</span></div>
-    <div class="totals-row"><span class="net-label">Net Balance</span><span class="net-value nums" id="netBalance">—</span></div>
+    <div class="totals-row"><span class="totals-label">Total Income</span><span class="totals-value income nums" id="totalIncome">···</span></div>
+    <div class="totals-row"><span class="totals-label">Total Expenditure</span><span class="totals-value expense nums" id="totalExpense">···</span></div>
+    <div class="totals-row"><span class="net-label">Net Balance</span><span class="net-value nums" id="netBalance">···</span></div>
   </div>
 
   <div class="updated-line" id="updatedLine">Updating…</div>
 
-  <button id="exportBtn" onclick="exportToExcel()" style="width:100%;margin-top:14px;background:var(--gold);color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">⬇ Download Full Record (Excel)</button>
+  <div style="display:flex;gap:8px;margin-top:14px;">
+    <button id="exportExcelBtn" onclick="exportToExcel()" style="flex:1;background:var(--gold);color:#fff;border:none;border-radius:10px;padding:12px 8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">⬇ Excel</button>
+    <button id="exportPdfBtn" onclick="exportToPDF()" style="flex:1;background:var(--green);color:#fff;border:none;border-radius:10px;padding:12px 8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">⬇ PDF</button>
+  </div>
 
   <div class="section">
     <div class="section-title">By Category</div>
@@ -124,8 +127,8 @@ footer{text-align:center;padding:36px 20px 10px;color:var(--ink-muted);font-size
     <div class="ledger" id="entriesLedger"><div class="load-state">Loading…</div></div>
   </div>
 
-  <footer>St. Charles Catholic Church, Owhase — Harvest Committee · Recorded in real time<br/>
-    <a href="https://wa.me/2349056209920" style="color:var(--ink-muted);text-decoration:underline;">Built by DaleX</a>
+  <footer>St. Charles Catholic Church, Owhase · Harvest Committee · Recorded in real time<br/>
+    <a href="https://dalewebx.vercel.app" target="_blank" rel="noopener" style="color:var(--ink-muted);text-decoration:underline;">Built by DaleX</a>
   </footer>
 </div>
 
@@ -147,7 +150,7 @@ const POLL_MS = 5000;
 
 // Church wifi is often genuinely slow, not just occasionally offline. A poll
 // that hangs forever would silently stack up requests, so every fetch gets
-// an 8s ceiling — if it's not back by then, treat it as a missed beat and
+// an 8s ceiling; if it's not back by then, treat it as a missed beat and
 // try again on the next tick rather than freezing the page.
 async function fetchWithTimeout(promiseFn, timeoutMs = 8000){
   return Promise.race([
@@ -179,7 +182,7 @@ async function load(isPoll){
     lastGoodAt = new Date();
     setConnectionState('live');
   }catch(err){
-    // Don't wipe the screen on a bad beat — keep showing the last good data,
+    // Don't wipe the screen on a bad beat: keep showing the last good data,
     // just be honest that it might be a little behind.
     setConnectionState('stale');
   }finally{
@@ -277,14 +280,14 @@ function renderCategories(entries){
 function renderEntries(entries){
   const filtered = currentFilter==='all' ? entries : entries.filter(e=>e.type===currentFilter);
   const el = document.getElementById('entriesLedger');
-  if(filtered.length===0){ el.innerHTML = '<div class="empty">No entries yet — the ledger will fill in as the harvest committee records each offering.</div>'; return; }
+  if(filtered.length===0){ el.innerHTML = '<div class="empty">No entries yet. The ledger will fill in as the harvest committee records each offering.</div>'; return; }
   el.innerHTML = filtered.map(e=>`
     <div class="ledger-row">
       <div class="ledger-left">
         <div class="ledger-name">${esc(e.name || e.category)}</div>
         <div class="ledger-meta">
           <span class="tag ${e.type}">${e.type==='income'?'In':'Out'}</span>
-          ${esc(e.category)}${e.payment_method?' · '+esc(e.payment_method):''} · ${fmtDate(e.entry_date)}
+          ${esc(e.category)}${e.payment_method?' · '+esc(e.payment_method):''}${e.bank_account?' ('+esc(e.bank_account)+')':''} · ${fmtDate(e.entry_date)}
         </div>
       </div>
       <div class="ledger-amount ${e.type} nums">${e.type==='income'?'+':'−'}${naira(e.amount)}</div>
@@ -322,7 +325,7 @@ function loadXLSX(){
 }
 
 async function exportToExcel(){
-  const btn = document.getElementById('exportBtn');
+  const btn = document.getElementById('exportExcelBtn');
   const originalText = btn.textContent;
   btn.disabled = true; btn.textContent = 'Preparing…';
   try{
@@ -336,7 +339,7 @@ async function exportToExcel(){
 
   const wb = XLSX.utils.book_new();
 
-  // Sheet 1 — every transaction, full detail
+  // Sheet 1: every transaction, full detail
   const allRows = ALL_ENTRIES.map(e => ({
     Date: e.entry_date,
     Type: e.type === 'income' ? 'Income' : 'Expenditure',
@@ -350,7 +353,7 @@ async function exportToExcel(){
   const ws1 = XLSX.utils.json_to_sheet(allRows);
   XLSX.utils.book_append_sheet(wb, ws1, 'All Transactions');
 
-  // Sheet 2 — totals by category (income only, matches the public breakdown)
+  // Sheet 2: totals by category (income only, matches the public breakdown)
   const income = ALL_ENTRIES.filter(e => e.type === 'income');
   const catTotals = {};
   income.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + Number(e.amount); });
@@ -358,7 +361,7 @@ async function exportToExcel(){
   const ws2 = XLSX.utils.json_to_sheet(catRows);
   XLSX.utils.book_append_sheet(wb, ws2, 'Category Totals');
 
-  // Sheet 3 — who has given under each category, individually
+  // Sheet 3: who has given under each category, individually
   const participantRows = income
     .filter(e => e.name)
     .sort((a,b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
@@ -366,7 +369,7 @@ async function exportToExcel(){
   const ws3 = XLSX.utils.json_to_sheet(participantRows);
   XLSX.utils.book_append_sheet(wb, ws3, 'Participants by Category');
 
-  // Sheet 4 — pledges, both pending and fulfilled
+  // Sheet 4: pledges, both pending and fulfilled
   const pledgeRows = (ALL_PLEDGES || []).map(p => ({
     Name: p.name, Category: p.category, 'Amount Pledged': Number(p.amount),
     Status: p.status === 'fulfilled' ? 'Fulfilled' : 'Pending',
@@ -376,6 +379,113 @@ async function exportToExcel(){
   XLSX.utils.book_append_sheet(wb, ws4, 'Pledges');
 
   XLSX.writeFile(wb, 'Harvest_of_Unstoppable_Blessings_Record.xlsx');
+}
+
+let jspdfLoadPromise = null;
+function loadJsPDF(){
+  if(window.jspdf) return Promise.resolve();
+  if(jspdfLoadPromise) return jspdfLoadPromise;
+  jspdfLoadPromise = new Promise((resolve, reject)=>{
+    const s1 = document.createElement('script');
+    s1.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+    s1.onload = () => {
+      const s2 = document.createElement('script');
+      s2.src = 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.1/dist/jspdf.plugin.autotable.min.js';
+      s2.onload = resolve;
+      s2.onerror = () => reject(new Error('Could not load the PDF tool. Check your connection and try again.'));
+      document.head.appendChild(s2);
+    };
+    s1.onerror = () => reject(new Error('Could not load the PDF tool. Check your connection and try again.'));
+    document.head.appendChild(s1);
+  });
+  return jspdfLoadPromise;
+}
+
+async function exportToPDF(){
+  const btn = document.getElementById('exportPdfBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Preparing…';
+  try{
+    await loadJsPDF();
+  }catch(e){
+    alert(e.message);
+    btn.disabled = false; btn.textContent = originalText;
+    return;
+  }
+  btn.disabled = false; btn.textContent = originalText;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const green = [27, 67, 50];
+  const gold = [198, 138, 46];
+  const income = ALL_ENTRIES.filter(e => e.type === 'income');
+  const expense = ALL_ENTRIES.filter(e => e.type === 'expense');
+  const totalIncome = income.reduce((s,e)=>s+Number(e.amount),0);
+  const totalExpense = expense.reduce((s,e)=>s+Number(e.amount),0);
+
+  // Title block
+  doc.setFillColor(...green);
+  doc.rect(0, 0, 210, 30, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16);
+  doc.text('Harvest of Unstoppable Blessings', 14, 15);
+  doc.setFontSize(10);
+  doc.text('St. Charles Catholic Church, Owhase', 14, 22);
+  doc.setFontSize(8);
+  doc.text('Generated ' + new Date().toLocaleString('en-GB'), 14, 27);
+
+  // Totals summary
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(11);
+  let y = 40;
+  doc.text(`Total Income: ${naira(totalIncome)}`, 14, y);
+  doc.text(`Total Expenditure: ${naira(totalExpense)}`, 14, y+7);
+  doc.setTextColor(...gold);
+  doc.text(`Net Balance: ${naira(totalIncome-totalExpense)}`, 14, y+14);
+  doc.setTextColor(0,0,0);
+
+  // Category totals
+  const catTotals = {};
+  income.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + Number(e.amount); });
+  const catRows = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).map(([cat,total]) => [cat, naira(total)]);
+  doc.autoTable({
+    startY: y+22, head: [['Category', 'Total Income']], body: catRows,
+    headStyles: { fillColor: green }, styles: { fontSize: 9 }, margin: { left: 14, right: 14 },
+  });
+
+  // All transactions
+  const txRows = ALL_ENTRIES.map(e => [
+    fmtDate(e.entry_date),
+    e.type === 'income' ? 'Income' : 'Expenditure',
+    e.category,
+    e.name || '',
+    (e.type==='income'?'+':'-') + naira(e.amount),
+    (e.payment_method || '') + (e.bank_account ? ` (${e.bank_account})` : ''),
+    e.created_by_name || '',
+  ]);
+  doc.autoTable({
+    startY: doc.lastAutoTable.finalY + 10,
+    head: [['Date','Type','Category','Name','Amount','Method','Logged By']],
+    body: txRows,
+    headStyles: { fillColor: green }, styles: { fontSize: 8 }, margin: { left: 14, right: 14 },
+  });
+
+  // Pledges
+  if(ALL_PLEDGES && ALL_PLEDGES.length){
+    const pledgeRows = ALL_PLEDGES.map(p => [
+      p.name, p.category, naira(p.amount),
+      p.status === 'fulfilled' ? 'Fulfilled' : 'Pending',
+      fmtDate(p.pledge_date),
+    ]);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 10,
+      head: [['Name','Category','Amount','Status','Pledge Date']],
+      body: pledgeRows,
+      headStyles: { fillColor: green }, styles: { fontSize: 8 }, margin: { left: 14, right: 14 },
+    });
+  }
+
+  doc.save('Harvest_of_Unstoppable_Blessings_Record.pdf');
 }
 
 document.getElementById('filterRow').addEventListener('click', (e)=>{
