@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Harvest of Unstoppable Blessings — Admin</title>
+<title>Harvest of Unstoppable Blessings · Admin</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -70,8 +71,14 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
 .fulfill-btn{flex-shrink:0;background:var(--gold);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;}
 .empty{text-align:center;padding:24px;color:var(--ink-muted);font-size:13px;}
 
-.recent-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.recent-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);font-size:13px;gap:10px;}
 .recent-row:last-child{border-bottom:none;}
+.recent-left{min-width:0;flex:1;}
+.recent-name{font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.recent-meta{font-size:11.5px;color:var(--ink-muted);margin-top:2px;}
+.recent-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.recent-delete{border:none;background:none;color:var(--ink-muted);font-size:15px;cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;}
+.recent-delete:hover{color:#B23A3A;background:#FBEEEE;}
 
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:flex-end;justify-content:center;}
 .modal-overlay.open{display:flex;}
@@ -84,7 +91,7 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
 <div class="wrap">
   <div class="header">
     <div class="eyebrow">St. Charles Catholic Church, Owhase</div>
-    <h1>Harvest of Unstoppable Blessings — Admin</h1>
+    <h1>Harvest of Unstoppable Blessings · Admin</h1>
   </div>
 
   <div id="loginScreen">
@@ -101,7 +108,7 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
 
       <!-- Step 2a: first-time PIN setup -->
       <div id="setupStep" style="display:none;">
-        <p style="font-size:12.5px;color:var(--ink-muted);margin-bottom:10px;text-align:left;">This is your first time logging in. Choose a PIN you'll remember — you'll use this same one every time from now on.</p>
+        <p style="font-size:12.5px;color:var(--ink-muted);margin-bottom:10px;text-align:left;">This is your first time logging in. Choose a PIN you'll remember. You'll use this same one every time from now on.</p>
         <input type="password" id="setupPin" placeholder="Choose a PIN (4-6 digits)" inputmode="numeric" maxlength="8"/>
         <input type="password" id="setupPinConfirm" placeholder="Type it again to confirm" inputmode="numeric" maxlength="8"/>
         <button class="btn btn-primary" id="setupBtn" onclick="doClaimAccount()">Set My PIN</button>
@@ -121,7 +128,7 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
       <div style="font-size:34px;margin-bottom:10px;">⚠️</div>
       <h2 id="splashWelcome" style="margin-bottom:10px;">Welcome</h2>
       <p style="text-align:left;margin-bottom:10px;">
-        Every entry you save here appears <strong>instantly</strong> on the public harvest page — for everyone to see, in real time.
+        Every entry you save here appears <strong>instantly</strong> on the public harvest page, for everyone to see, in real time.
       </p>
       <p style="text-align:left;margin-bottom:18px;">
         Please double-check the <strong>name, amount, and category</strong> before hitting save. There's no quiet way to undo a mistake once it's on the public page.
@@ -173,6 +180,14 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
             <option value="Cash and Transfer">Cash and Transfer</option>
             <option value="Cheque">Cheque</option>
           </select>
+          <div id="bankAccountWrap" style="display:none;">
+            <label>Which Account?</label>
+            <select id="entryBankAccount">
+              <option value="">Select account</option>
+              <option value="Zenith Bank">Zenith Bank</option>
+              <option value="Union Bank">Union Bank</option>
+            </select>
+          </div>
         </div>
 
         <!-- EXPENSE ONLY -->
@@ -181,7 +196,7 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
           <input type="text" id="expenseWhatFor" placeholder="e.g. Canopy rental, decoration, feeding" oninput="updateAmountLock()"/>
         </div>
 
-        <div id="amountLockHint" class="lock-hint">Add a description above first — the amount unlocks once there's something to attach it to.</div>
+        <div id="amountLockHint" class="lock-hint">Add a description above first. The amount unlocks once there's something to attach it to.</div>
 
         <!-- Shared single amount (income: Cash/Transfer/Cheque · expense: always) -->
         <div id="singleAmountWrap">
@@ -233,6 +248,10 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
       </div>
     </div>
   </div>
+
+  <footer style="text-align:center;padding:24px 20px 10px;color:var(--ink-muted);font-size:12px;">
+    <a href="https://dalewebx.vercel.app" target="_blank" rel="noopener" style="color:var(--ink-muted);text-decoration:underline;">Built by DaleX</a>
+  </footer>
 </div>
 
 <div class="modal-overlay" id="fulfillModal">
@@ -243,14 +262,22 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
     <label>Amount Received (₦)</label>
     <input type="number" id="fulfillAmount" inputmode="decimal"/>
     <label>Payment Method</label>
-    <select id="fulfillMethod">
-      <option value="">— Not specified —</option>
+    <select id="fulfillMethod" onchange="onFulfillMethodChange()">
+      <option value="">Not specified</option>
       <option>Cash</option>
       <option>Transfer</option>
       <option>POS</option>
       <option>Cheque</option>
       <option>Other</option>
     </select>
+    <div id="fulfillBankAccountWrap" style="display:none;">
+      <label>Which Account?</label>
+      <select id="fulfillBankAccount">
+        <option value="">Select account</option>
+        <option value="Zenith Bank">Zenith Bank</option>
+        <option value="Union Bank">Union Bank</option>
+      </select>
+    </div>
     <button class="btn btn-primary" id="fulfillSubmitBtn" onclick="confirmFulfill()">Confirm Payment Received</button>
     <button class="btn btn-outline" style="margin-top:8px;" onclick="closeFulfillModal()">Cancel</button>
   </div>
@@ -314,7 +341,7 @@ async function resolveUsername(username, btn, btnRestingLabel){
     if(!res.ok){
       errEl.innerHTML = `<div class="err-box">${esc(data.error||'Username not recognized.')}</div>`;
       // The remembered username on this device no longer matches a real
-      // account (e.g. it was reset) — fall back to manual entry.
+      // account (e.g. it was reset), fall back to manual entry.
       forgetUsername();
       document.getElementById('usernameStep').style.display = 'block';
       return;
@@ -404,9 +431,9 @@ function enterApp(name, role, username, pin){
   rememberUsername(username);
   document.getElementById('whoName').textContent = name + ' · ' + role;
   document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('splashWelcome').textContent = `Welcome, ${name} — ${role}`;
+  document.getElementById('splashWelcome').textContent = `Welcome, ${name} · ${role}`;
   // Preload the data in the background while the reminder splash is up, so
-  // the app feels instant the moment they hit "Continue" — no spinner after.
+  // the app feels instant the moment they hit "Continue", no spinner after.
   populateCategorySelects();
   loadPendingPledges();
   loadRecent();
@@ -482,9 +509,12 @@ function updateAmountLock(){
 }
 
 function onMethodChange(){
-  const isSplit = document.getElementById('entryMethod').value === 'Cash and Transfer';
+  const method = document.getElementById('entryMethod').value;
+  const isSplit = method === 'Cash and Transfer';
   document.getElementById('singleAmountWrap').style.display = isSplit ? 'none' : 'block';
   document.getElementById('splitAmountWrap').style.display = isSplit ? 'block' : 'none';
+  const needsBank = method === 'Transfer' || isSplit;
+  document.getElementById('bankAccountWrap').style.display = needsBank ? 'block' : 'none';
 }
 
 function setEntryType(type){
@@ -493,7 +523,7 @@ function setEntryType(type){
   document.getElementById('typeExpenseBtn').classList.toggle('active', type==='expense');
   document.getElementById('incomeOnlyFields').style.display = type==='income' ? 'block' : 'none';
   document.getElementById('expenseOnlyFields').style.display = type==='expense' ? 'block' : 'none';
-  // Expenditure never uses the cash/transfer split — always single amount
+  // Expenditure never uses the cash/transfer split, always single amount
   if(type==='expense'){
     document.getElementById('singleAmountWrap').style.display = 'block';
     document.getElementById('splitAmountWrap').style.display = 'none';
@@ -531,7 +561,7 @@ async function submitEntry(){
 
   if(entry_date > todayStr()){ errEl.innerHTML = '<div class="err-box">The date cannot be ahead of today.</div>'; return; }
 
-  let category, name, payment_method, isSplit = false, singleAmount, cashAmount, transferAmount;
+  let category, name, payment_method, isSplit = false, singleAmount, cashAmount, transferAmount, bank_account = null;
 
   if(entryType === 'income'){
     const catSelect = document.getElementById('entryCategory').value;
@@ -550,9 +580,17 @@ async function submitEntry(){
       if((!cashAmount || Number(cashAmount)<=0) && (!transferAmount || Number(transferAmount)<=0)){
         errEl.innerHTML = '<div class="err-box">Please enter at least one of the cash or transfer amounts.</div>'; return;
       }
+      if(transferAmount && Number(transferAmount)>0){
+        bank_account = document.getElementById('entryBankAccount').value;
+        if(!bank_account){ errEl.innerHTML = '<div class="err-box">Please select which account the transfer went into.</div>'; return; }
+      }
     } else {
       singleAmount = document.getElementById('entryAmount').value;
       if(!singleAmount || Number(singleAmount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+      if(payment_method === 'Transfer'){
+        bank_account = document.getElementById('entryBankAccount').value;
+        if(!bank_account){ errEl.innerHTML = '<div class="err-box">Please select which account the transfer went into.</div>'; return; }
+      }
     }
   } else {
     category = document.getElementById('expenseWhatFor').value.trim();
@@ -570,17 +608,18 @@ async function submitEntry(){
         await submitOneEntry({ entry_date, type:'income', category, name, amount:cashAmount, payment_method:'Cash', note });
       }
       if(transferAmount && Number(transferAmount)>0){
-        await submitOneEntry({ entry_date, type:'income', category, name, amount:transferAmount, payment_method:'Transfer', note });
+        await submitOneEntry({ entry_date, type:'income', category, name, amount:transferAmount, payment_method:'Transfer', bank_account, note });
       }
-      okEl.innerHTML = `<div class="ok-box">✓ Saved — ${esc(category)} (split: cash + transfer)</div>`;
+      okEl.innerHTML = `<div class="ok-box">✓ Saved: ${esc(category)} (split: cash + transfer)</div>`;
     } else {
-      await submitOneEntry({ entry_date, type:entryType, category, name, amount:singleAmount, payment_method, note });
-      okEl.innerHTML = `<div class="ok-box">✓ Saved: ${entryType==='income'?'+':'−'}${naira(singleAmount)} — ${esc(category)}</div>`;
+      await submitOneEntry({ entry_date, type:entryType, category, name, amount:singleAmount, payment_method, bank_account, note });
+      okEl.innerHTML = `<div class="ok-box">✓ Saved: ${entryType==='income'?'+':'−'}${naira(singleAmount)}: ${esc(category)}</div>`;
     }
     document.getElementById('entryName').value='';
     document.getElementById('entryAmount').value='';
     document.getElementById('entryAmountCash').value='';
     document.getElementById('entryAmountTransfer').value='';
+    document.getElementById('entryBankAccount').value='';
     document.getElementById('entryCategoryOther').value='';
     document.getElementById('expenseWhatFor').value='';
     document.getElementById('entryNote').value='';
@@ -647,14 +686,21 @@ function openFulfillModalByIndex(i){ openFulfillModal(window.__PENDING_PLEDGES[i
 
 function openFulfillModal(pledge){
   ACTIVE_PLEDGE = pledge;
-  document.getElementById('fulfillPledgeInfo').textContent = `${pledge.name} — pledged ${naira(pledge.amount)} for ${pledge.category}`;
+  document.getElementById('fulfillPledgeInfo').textContent = `${pledge.name}: pledged ${naira(pledge.amount)} for ${pledge.category}`;
   document.getElementById('fulfillAmount').value = pledge.amount;
+  document.getElementById('fulfillMethod').value = '';
+  document.getElementById('fulfillBankAccount').value = '';
+  document.getElementById('fulfillBankAccountWrap').style.display = 'none';
   document.getElementById('fulfillErr').innerHTML = '';
   document.getElementById('fulfillModal').classList.add('open');
 }
 function closeFulfillModal(){
   document.getElementById('fulfillModal').classList.remove('open');
   ACTIVE_PLEDGE = null;
+}
+function onFulfillMethodChange(){
+  document.getElementById('fulfillBankAccountWrap').style.display =
+    document.getElementById('fulfillMethod').value === 'Transfer' ? 'block' : 'none';
 }
 async function confirmFulfill(){
   if(!ACTIVE_PLEDGE) return;
@@ -663,13 +709,18 @@ async function confirmFulfill(){
   errEl.innerHTML = '';
   const amount = document.getElementById('fulfillAmount').value;
   const payment_method = document.getElementById('fulfillMethod').value;
+  let bank_account = null;
+  if(payment_method === 'Transfer'){
+    bank_account = document.getElementById('fulfillBankAccount').value;
+    if(!bank_account){ errEl.innerHTML = '<div class="err-box">Please select which account the transfer went into.</div>'; return; }
+  }
   if(!amount || Number(amount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
 
   btn.disabled = true; btn.textContent = 'Saving…';
   try{
     const res = await fetchWithTimeout(API+'/api/fulfill-pledge', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ username:SESSION.username, pin:SESSION.pin, pledge_id:ACTIVE_PLEDGE.id, amount, payment_method })
+      body: JSON.stringify({ username:SESSION.username, pin:SESSION.pin, pledge_id:ACTIVE_PLEDGE.id, amount, payment_method, bank_account })
     });
     const data = await res.json();
     if(!res.ok){ errEl.innerHTML = `<div class="err-box">${esc(data.error)}</div>`; return; }
@@ -691,18 +742,46 @@ async function loadRecent(){
     });
     const rows = await res.json();
     if(!Array.isArray(rows) || rows.length===0){ el.innerHTML = '<div class="empty">No entries yet.</div>'; return; }
-    el.innerHTML = rows.map(r=>`
+    el.innerHTML = rows.map(r=>{
+      const title = r.name || r.category;
+      const metaParts = [`Logged by ${esc(r.created_by_name)}`];
+      if(r.name) metaParts.push(esc(r.category));
+      if(r.payment_method) metaParts.push(esc(r.payment_method) + (r.bank_account ? ` (${esc(r.bank_account)})` : ''));
+      return `
       <div class="recent-row">
-        <span>${esc(r.name||r.category)} <span style="color:var(--ink-muted);">· ${esc(r.created_by_name)}</span></span>
-        <span class="nums" style="color:${r.type==='income'?'var(--income)':'var(--expense)'};font-weight:700;">${r.type==='income'?'+':'−'}${naira(r.amount)}</span>
-      </div>`).join('');
+        <div class="recent-left">
+          <div class="recent-name">${esc(title)}</div>
+          <div class="recent-meta">${metaParts.join(' · ')}</div>
+        </div>
+        <div class="recent-right">
+          <span class="nums" style="color:${r.type==='income'?'var(--income)':'var(--expense)'};font-weight:700;">${r.type==='income'?'+':'−'}${naira(r.amount)}</span>
+          <button class="recent-delete" title="Delete this entry" onclick="deleteEntry('${r.id}')">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
   }catch(e){ el.innerHTML = '<div class="empty">Could not load recent entries.</div>'; }
+}
+
+async function deleteEntry(entryId){
+  if(!confirm('Delete this entry? It will disappear from the public page immediately. This cannot be undone.')) return;
+  try{
+    const res = await fetchWithTimeout(API+'/api/delete-entry', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username:SESSION.username, pin:SESSION.pin, entry_id:entryId })
+    });
+    const data = await res.json();
+    if(!res.ok){ alert(data.error || 'Could not delete entry.'); return; }
+    loadRecent();
+    loadPendingPledges();
+  }catch(e){
+    alert(e.message || 'Could not reach the server. Check your connection.');
+  }
 }
 
 document.getElementById('pinInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
 
 // On page load, if this device already has a remembered admin, skip
-// straight past typing the username — go directly to "enter your PIN".
+// straight past typing the username, go directly to "enter your PIN".
 (function initLogin(){
   const remembered = getRememberedUsername();
   if(remembered){
