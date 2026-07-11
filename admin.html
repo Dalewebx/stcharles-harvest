@@ -38,6 +38,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);}
 .btn{display:block;width:100%;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;}
 .btn-primary{background:var(--green);color:#fff;}
 .btn-primary:disabled{opacity:0.6;}
+.btn-primary.confirm-armed{background:#B23A3A;animation:armedPulse 1s ease-in-out infinite;}
+@keyframes armedPulse{0%,100%{opacity:1;}50%{opacity:0.85;}}
 .btn-outline{background:none;border:1.5px solid var(--green);color:var(--green);}
 .err-box{background:var(--error-bg);color:var(--error);font-size:12.5px;padding:10px 12px;border-radius:8px;margin-bottom:12px;text-align:left;}
 .ok-box{background:var(--income-bg);color:var(--income);font-size:12.5px;padding:10px 12px;border-radius:8px;margin-bottom:12px;text-align:left;}
@@ -79,6 +81,9 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
 .recent-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .recent-delete{border:none;background:none;color:var(--ink-muted);font-size:15px;cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;}
 .recent-delete:hover{color:#B23A3A;background:#FBEEEE;}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--green);color:#fff;padding:13px 20px;border-radius:10px;font-size:13.5px;font-weight:600;box-shadow:0 10px 28px rgba(0,0,0,0.28);opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;z-index:9999;max-width:88%;text-align:center;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.error{background:#B23A3A;}
 .cat-tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;margin-right:2px;position:relative;top:-1px;}
 .cat-tag.income{background:var(--income-bg);color:var(--income);}
 .cat-tag.expense{background:var(--expense-bg);color:var(--expense);}
@@ -226,7 +231,19 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
 
         <label>Note (optional)</label>
         <textarea id="entryNote" rows="2" placeholder="Any extra detail"></textarea>
-        <button class="btn btn-primary" id="entrySubmitBtn" onclick="submitEntry()">Save Entry</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" style="flex:1;" id="addBatchBtn" onclick="addToBatch()">+ Add to Batch</button>
+          <button class="btn btn-primary" style="flex:1;" id="entrySubmitBtn" onclick="submitEntry()">Save Entry</button>
+        </div>
+
+        <div id="batchQueueCard" style="display:none;margin-top:18px;border-top:1px solid var(--border);padding-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 style="margin:0;">Batch Queue (<span id="batchCount">0</span>)</h3>
+            <span onclick="clearBatch()" style="color:var(--ink-muted);font-size:12px;text-decoration:underline;cursor:pointer;">Clear all</span>
+          </div>
+          <div id="batchList"></div>
+          <button type="button" class="btn btn-primary" id="saveAllBtn" style="margin-top:12px;background:var(--green);" onclick="saveAllBatch()">Save All (<span id="batchCount2">0</span>) · <span id="batchTotal"></span></button>
+        </div>
       </div>
     </div>
 
@@ -302,6 +319,16 @@ const CATEGORIES = ['Family Harvesting','Harvest Levy','Other'];
 
 let SESSION = null;
 let entryType = 'income';
+let BATCH_QUEUE = [];
+let toastTimer = null;
+function showToast(message, isError){
+  const t = document.getElementById('toast');
+  t.textContent = message;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), isError ? 4500 : 3200);
+}
 let PENDING_USERNAME = '';
 const REMEMBER_KEY = 'harvest_admin_username';
 
@@ -535,6 +562,7 @@ function onMethodChange(){
 
 function setEntryType(type){
   entryType = type;
+  disarmSaveButton();
   document.getElementById('typeIncomeBtn').classList.toggle('active', type==='income');
   document.getElementById('typeExpenseBtn').classList.toggle('active', type==='expense');
   document.getElementById('incomeOnlyFields').style.display = type==='income' ? 'block' : 'none';
@@ -550,6 +578,7 @@ function setEntryType(type){
 }
 
 function switchTab(tab){
+  disarmSaveButton();
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+tab).classList.add('active');
@@ -567,26 +596,25 @@ async function submitOneEntry(payload){
   return data;
 }
 
-async function submitEntry(){
-  const errEl = document.getElementById('entryErr'), okEl = document.getElementById('entryOk');
-  const btn = document.getElementById('entrySubmitBtn');
-  errEl.innerHTML=''; okEl.innerHTML='';
-
+// Validates the current form and returns either {error} or the built
+// entry item(s), without saving anything. Shared by both the immediate
+// "Save Entry" button and "Add to Batch", so the two paths can never
+// drift out of sync on what counts as valid.
+function buildEntryFromForm(){
   const entry_date = document.getElementById('entryDate').value;
   const note = document.getElementById('entryNote').value.trim();
-
-  if(entry_date > todayStr()){ errEl.innerHTML = '<div class="err-box">The date cannot be ahead of today.</div>'; return; }
+  if(entry_date > todayStr()) return { error: 'The date cannot be ahead of today.' };
 
   let category, name, payment_method, isSplit = false, singleAmount, cashAmount, transferAmount, bank_account = null, isCollective = false;
 
   if(entryType === 'income'){
     const catSelect = document.getElementById('entryCategory').value;
     category = catSelect === 'Other' ? document.getElementById('entryCategoryOther').value.trim() : catSelect;
-    if(!category){ errEl.innerHTML = '<div class="err-box">Please specify the category.</div>'; return; }
+    if(!category) return { error: 'Please specify the category.' };
 
     isCollective = document.getElementById('isCollective').checked;
     name = isCollective ? null : document.getElementById('entryName').value.trim();
-    if(!isCollective && !name){ errEl.innerHTML = '<div class="err-box">Name is required (or check "collective offering" above if there isn\'t one).</div>'; return; }
+    if(!isCollective && !name) return { error: 'Name is required (or check "collective offering" above if there isn\'t one).' };
 
     payment_method = document.getElementById('entryMethod').value;
     isSplit = payment_method === 'Cash and Transfer';
@@ -595,58 +623,207 @@ async function submitEntry(){
       cashAmount = document.getElementById('entryAmountCash').value;
       transferAmount = document.getElementById('entryAmountTransfer').value;
       if((!cashAmount || Number(cashAmount)<=0) && (!transferAmount || Number(transferAmount)<=0)){
-        errEl.innerHTML = '<div class="err-box">Please enter at least one of the cash or transfer amounts.</div>'; return;
+        return { error: 'Please enter at least one of the cash or transfer amounts.' };
       }
       if(transferAmount && Number(transferAmount)>0){
         bank_account = document.getElementById('entryBankAccount').value;
-        if(!bank_account){ errEl.innerHTML = '<div class="err-box">Please select which account the transfer went into.</div>'; return; }
+        if(!bank_account) return { error: 'Please select which account the transfer went into.' };
       }
     } else {
       singleAmount = document.getElementById('entryAmount').value;
-      if(!singleAmount || Number(singleAmount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+      if(!singleAmount || Number(singleAmount)<=0) return { error: 'Please enter a valid amount.' };
       if(payment_method === 'Transfer'){
         bank_account = document.getElementById('entryBankAccount').value;
-        if(!bank_account){ errEl.innerHTML = '<div class="err-box">Please select which account the transfer went into.</div>'; return; }
+        if(!bank_account) return { error: 'Please select which account the transfer went into.' };
       }
     }
   } else {
     category = document.getElementById('expenseWhatFor').value.trim();
-    if(!category){ errEl.innerHTML = '<div class="err-box">Please say what this expense is for.</div>'; return; }
-    name = null;
-    payment_method = null;
+    if(!category) return { error: 'Please say what this expense is for.' };
+    name = null; payment_method = null;
     singleAmount = document.getElementById('entryAmount').value;
-    if(!singleAmount || Number(singleAmount)<=0){ errEl.innerHTML = '<div class="err-box">Please enter a valid amount.</div>'; return; }
+    if(!singleAmount || Number(singleAmount)<=0) return { error: 'Please enter a valid amount.' };
+  }
+
+  const items = [];
+  if(isSplit){
+    if(cashAmount && Number(cashAmount)>0) items.push({ entry_date, type:'income', category, name, amount:cashAmount, payment_method:'Cash', note, is_collective:isCollective });
+    if(transferAmount && Number(transferAmount)>0) items.push({ entry_date, type:'income', category, name, amount:transferAmount, payment_method:'Transfer', bank_account, note, is_collective:isCollective });
+  } else {
+    items.push({ entry_date, type:entryType, category, name, amount:singleAmount, payment_method, bank_account, note, is_collective:isCollective });
+  }
+
+  const total = items.reduce((s,i)=>s+Number(i.amount),0);
+  return { items, label: name || category, total, type: entryType };
+}
+
+function resetEntryFormFields(){
+  document.getElementById('entryName').value='';
+  document.getElementById('isCollective').checked = false;
+  document.getElementById('nameFieldWrap').style.display = 'block';
+  document.getElementById('entryAmount').value='';
+  document.getElementById('entryAmountCash').value='';
+  document.getElementById('entryAmountTransfer').value='';
+  document.getElementById('entryBankAccount').value='';
+  document.getElementById('entryCategoryOther').value='';
+  document.getElementById('expenseWhatFor').value='';
+  document.getElementById('entryNote').value='';
+  updateAmountLock();
+}
+
+let saveArmed = false;
+let saveArmTimer = null;
+let armedResult = null;
+
+function disarmSaveButton(){
+  saveArmed = false;
+  armedResult = null;
+  clearTimeout(saveArmTimer);
+  const btn = document.getElementById('entrySubmitBtn');
+  btn.textContent = 'Save Entry';
+  btn.classList.remove('confirm-armed');
+}
+
+async function submitEntry(){
+  const errEl = document.getElementById('entryErr'), okEl = document.getElementById('entryOk');
+  const btn = document.getElementById('entrySubmitBtn');
+  errEl.innerHTML=''; okEl.innerHTML='';
+
+  // First tap just arms it and locks in exactly what will be saved, a
+  // stray touch shouldn't commit real money data, and if the admin edits
+  // a field before the second tap, that edit is treated as a change of
+  // mind: it re-validates fresh rather than silently saving what the
+  // button label no longer matches.
+  if(!saveArmed){
+    const result = buildEntryFromForm();
+    if(result.error){ errEl.innerHTML = `<div class="err-box">${esc(result.error)}</div>`; return; }
+    saveArmed = true;
+    armedResult = result;
+    btn.textContent = `Tap again to confirm ${result.type==='income'?'+':'−'}${naira(result.total)}`;
+    btn.classList.add('confirm-armed');
+    clearTimeout(saveArmTimer);
+    saveArmTimer = setTimeout(disarmSaveButton, 4000); // auto-cancel if they walk away
+    return;
+  }
+
+  const freshCheck = buildEntryFromForm();
+  const stillMatches = !freshCheck.error && freshCheck.total === armedResult.total && freshCheck.label === armedResult.label && freshCheck.type === armedResult.type;
+  const result = armedResult;
+  disarmSaveButton();
+
+  if(!stillMatches){
+    errEl.innerHTML = '<div class="err-box">The form changed since you tapped save. Please tap Save Entry again to confirm the new details.</div>';
+    return;
   }
 
   btn.disabled = true; btn.textContent = 'Saving…';
   try{
-    if(isSplit){
-      if(cashAmount && Number(cashAmount)>0){
-        await submitOneEntry({ entry_date, type:'income', category, name, amount:cashAmount, payment_method:'Cash', note, is_collective:isCollective });
-      }
-      if(transferAmount && Number(transferAmount)>0){
-        await submitOneEntry({ entry_date, type:'income', category, name, amount:transferAmount, payment_method:'Transfer', bank_account, note, is_collective:isCollective });
-      }
-      okEl.innerHTML = `<div class="ok-box">✓ Saved: ${esc(category)} (split: cash + transfer)</div>`;
-    } else {
-      await submitOneEntry({ entry_date, type:entryType, category, name, amount:singleAmount, payment_method, bank_account, note, is_collective:isCollective });
-      okEl.innerHTML = `<div class="ok-box">✓ Saved: ${entryType==='income'?'+':'−'}${naira(singleAmount)}: ${esc(category)}</div>`;
-    }
-    document.getElementById('entryName').value='';
-    document.getElementById('isCollective').checked = false;
-    document.getElementById('nameFieldWrap').style.display = 'block';
-    document.getElementById('entryAmount').value='';
-    document.getElementById('entryAmountCash').value='';
-    document.getElementById('entryAmountTransfer').value='';
-    document.getElementById('entryBankAccount').value='';
-    document.getElementById('entryCategoryOther').value='';
-    document.getElementById('expenseWhatFor').value='';
-    document.getElementById('entryNote').value='';
-    updateAmountLock();
+    for(const item of result.items) await submitOneEntry(item);
+    resetEntryFormFields();
+    // A toast, not an inline box: it stays visible and readable no matter
+    // where on the (often long, keyboard-open) form the admin is scrolled
+    // to, so "did that actually save?" never requires hunting for a message.
+    showToast(`✓ Saved ${result.type==='income'?'+':'−'}${naira(result.total)} · ${esc(result.label)}`);
+    loadRecent();
   }catch(e){
     errEl.innerHTML = `<div class="err-box">${esc(e.message)}</div>`;
   }finally{
     btn.disabled = false; btn.textContent = 'Save Entry';
+  }
+}
+
+// Batch queue: for Sundays when several gifts need entering back to back.
+// "Add to Batch" only validates and holds the entry in memory, nothing is
+// saved to the server until "Save All" is tapped, so nothing half-saves if
+// the admin gets interrupted partway through a stack of entries.
+function addToBatch(){
+  disarmSaveButton();
+  const errEl = document.getElementById('entryErr');
+  errEl.innerHTML = '';
+  const result = buildEntryFromForm();
+  if(result.error){ errEl.innerHTML = `<div class="err-box">${esc(result.error)}</div>`; return; }
+
+  BATCH_QUEUE.push({
+    tempId: 'b' + Date.now() + Math.random().toString(36).slice(2,7),
+    items: result.items,
+    label: result.label,
+    total: result.total,
+    type: result.type,
+  });
+  resetEntryFormFields();
+  renderBatchQueue();
+  showToast(`+ Added to batch (${BATCH_QUEUE.length} queued, none saved yet)`);
+}
+
+function removeFromBatch(tempId){
+  BATCH_QUEUE = BATCH_QUEUE.filter(b => b.tempId !== tempId);
+  renderBatchQueue();
+}
+
+function clearBatch(){
+  if(BATCH_QUEUE.length === 0) return;
+  if(!confirm(`Clear all ${BATCH_QUEUE.length} queued entries? Nothing has been saved yet, they will be lost.`)) return;
+  BATCH_QUEUE = [];
+  renderBatchQueue();
+}
+
+function renderBatchQueue(){
+  const card = document.getElementById('batchQueueCard');
+  const list = document.getElementById('batchList');
+  if(BATCH_QUEUE.length === 0){ card.style.display = 'none'; list.innerHTML = ''; return; }
+  card.style.display = 'block';
+  document.getElementById('batchCount').textContent = BATCH_QUEUE.length;
+  document.getElementById('batchCount2').textContent = BATCH_QUEUE.length;
+  const net = BATCH_QUEUE.reduce((s,b) => s + (b.type==='income' ? Number(b.total) : -Number(b.total)), 0);
+  document.getElementById('batchTotal').textContent = naira(Math.abs(net));
+  list.innerHTML = BATCH_QUEUE.map(b => `
+    <div class="recent-row">
+      <div class="recent-left">
+        <div class="recent-name">${esc(b.label)}</div>
+      </div>
+      <div class="recent-right">
+        <span class="nums" style="color:${b.type==='income'?'var(--income)':'var(--expense)'};font-weight:700;">${b.type==='income'?'+':'−'}${naira(b.total)}</span>
+        <button class="recent-delete" title="Remove from batch" onclick="removeFromBatch('${b.tempId}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function saveAllBatch(){
+  if(BATCH_QUEUE.length === 0) return;
+  const net = BATCH_QUEUE.reduce((s,b) => s + (b.type==='income' ? Number(b.total) : -Number(b.total)), 0);
+  const confirmMsg = `Save all ${BATCH_QUEUE.length} queued ${BATCH_QUEUE.length===1?'entry':'entries'} (net ${naira(Math.abs(net))})? This writes them to the live public page and cannot be undone from here.`;
+  if(!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById('saveAllBtn');
+  const originalHTML = btn.innerHTML;
+  const total = BATCH_QUEUE.length;
+  let done = 0;
+  const failedLabels = [];
+
+  for(const b of [...BATCH_QUEUE]){
+    btn.disabled = true;
+    btn.textContent = `Saving ${done+1} of ${total}…`;
+    try{
+      for(const item of b.items) await submitOneEntry(item);
+      BATCH_QUEUE = BATCH_QUEUE.filter(x => x.tempId !== b.tempId);
+      done++;
+    }catch(e){
+      // Leave failed items in the queue rather than silently dropping them,
+      // so a mid-batch network hiccup never loses an entry, it just stays
+      // queued for a retry.
+      failedLabels.push(b.label);
+    }
+  }
+
+  renderBatchQueue();
+  btn.disabled = false; btn.innerHTML = originalHTML;
+  loadRecent();
+  loadPendingPledges();
+
+  if(failedLabels.length === 0){
+    showToast(`✓ ${done} ${done===1?'entry':'entries'} saved`);
+  } else {
+    showToast(`Saved ${done}, but ${failedLabels.length} failed and stayed in the queue: ${failedLabels.join(', ')}`, true);
   }
 }
 
@@ -811,5 +988,6 @@ document.getElementById('pinInput').addEventListener('keydown', (e)=>{ if(e.key=
   }
 })();
 </script>
+<div id="toast"></div>
 </body>
 </html>
