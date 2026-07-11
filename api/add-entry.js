@@ -14,12 +14,12 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { username, pin, entry_date, type, category, name, amount, payment_method, bank_account, note } = req.body || {};
+  const { username, pin, entry_date, type, category, name, amount, payment_method, bank_account, note, is_collective } = req.body || {};
   if (!username || !pin) return res.status(400).json({ error: 'Username and PIN required' });
   if (!type || !['income', 'expense'].includes(type)) return res.status(400).json({ error: 'Type must be income or expense' });
   if (!category) return res.status(400).json({ error: 'Category required' });
   if (!amount || isNaN(amount) || Number(amount) <= 0) return res.status(400).json({ error: 'A valid amount is required' });
-  if (type === 'income' && !name) return res.status(400).json({ error: 'Name is required for income entries' });
+  if (type === 'income' && !name && !is_collective) return res.status(400).json({ error: 'Name is required for income entries (or mark it as a collective offering)' });
   const resolvedDate = entry_date || new Date().toISOString().slice(0, 10);
   const todayStr = new Date().toISOString().slice(0, 10);
   if (resolvedDate > todayStr) return res.status(400).json({ error: 'The date cannot be ahead of today.' });
