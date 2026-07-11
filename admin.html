@@ -19,7 +19,79 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--cream);color:var(--ink);font-family:'Public Sans',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;}
 .nums{font-variant-numeric:tabular-nums;}
-.wrap{max-width:480px;margin:0 auto;padding:24px 16px 60px;}
+.wrap{max-width:480px;margin:0 auto;padding:24px 16px 76px;}
+
+/* --- Dashboard shell: sidebar on desktop, bottom nav on mobile --- */
+.app-shell{display:block;}
+.sidebar{display:none;}
+@media (min-width:900px){
+  .wrap{max-width:1180px;padding:0;display:flex;min-height:100vh;}
+  .app-shell{display:flex;width:100%;}
+  .sidebar{display:flex;flex-direction:column;width:230px;flex-shrink:0;background:var(--green);color:#fff;padding:24px 16px;min-height:100vh;position:sticky;top:0;}
+  .sidebar-logo{text-align:center;margin-bottom:28px;}
+  .sidebar-logo .mark{font-size:30px;margin-bottom:6px;}
+  .sidebar-logo .motto{font-size:9.5px;letter-spacing:1.5px;color:var(--gold-light);text-transform:uppercase;font-weight:700;}
+  .sidebar-nav{display:flex;flex-direction:column;gap:4px;flex:1;}
+  .sidebar-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:9px;color:rgba(255,255,255,0.75);font-size:13.5px;font-weight:600;cursor:pointer;border:none;background:none;text-align:left;font-family:inherit;}
+  .sidebar-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .sidebar-item.active{background:rgba(255,255,255,0.14);color:#fff;}
+  .sidebar-item.soon{opacity:0.4;cursor:default;}
+  .sidebar-item.soon:hover{background:none;color:rgba(255,255,255,0.75);}
+  .sidebar-item .tag-soon{font-size:8.5px;background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:6px;margin-left:auto;letter-spacing:0.5px;}
+  .sidebar-foot{border-top:1px solid rgba(255,255,255,0.15);padding-top:14px;margin-top:14px;}
+  .sidebar-foot .who{font-size:11.5px;color:rgba(255,255,255,0.65);margin-bottom:8px;}
+  .sidebar-foot .who strong{display:block;font-size:13px;color:#fff;}
+  .main-col{flex:1;min-width:0;padding:28px 32px 60px;}
+  .mobile-bottom-nav{display:none !important;}
+  .session-bar{display:none;}
+  .tabs{display:none;}
+}
+.main-col{}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+.topbar h1{font-family:'Fraunces',serif;font-size:20px;color:var(--green);font-weight:600;}
+.topbar .sub{font-size:12.5px;color:var(--ink-muted);}
+.topbar-live{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:var(--income);background:var(--income-bg);padding:5px 10px;border-radius:20px;white-space:nowrap;}
+.topbar-live .dot{width:6px;height:6px;border-radius:50%;background:var(--income);animation:dashLivePulse 2s infinite;}
+.topbar-live.stale{color:var(--gold-dark);background:#FDF3DC;}
+.topbar-live.stale .dot{background:var(--gold-dark);animation:none;}
+@keyframes dashLivePulse{0%{box-shadow:0 0 0 0 rgba(58,125,68,0.5);}70%{box-shadow:0 0 0 6px rgba(58,125,68,0);}100%{box-shadow:0 0 0 0 rgba(58,125,68,0);}}
+
+.summary-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;}
+@media (min-width:640px){.summary-grid{grid-template-columns:repeat(2,1fr);}}
+@media (min-width:900px){.summary-grid{grid-template-columns:repeat(4,1fr);}}
+.summary-card{background:var(--paper);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;gap:12px;align-items:flex-start;}
+.summary-icon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.summary-icon.income{background:var(--green);color:#fff;}
+.summary-icon.expense{background:var(--expense);color:#fff;}
+.summary-icon.net{background:var(--gold-dark);color:#fff;}
+.summary-icon.pledge{background:#FDF3DC;color:var(--gold-dark);}
+.summary-label{font-size:10px;letter-spacing:0.5px;color:var(--ink-muted);text-transform:uppercase;font-weight:700;margin-bottom:3px;}
+.summary-value{font-family:'Public Sans',sans-serif;font-variant-numeric:tabular-nums;font-size:18px;font-weight:700;color:var(--ink);}
+.summary-sub{font-size:11px;color:var(--ink-muted);margin-top:2px;}
+
+.dash-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:16px;}
+@media (min-width:900px){.dash-grid{grid-template-columns:1.3fr 1fr;}}
+.cat-bar-row{margin-bottom:12px;}
+.cat-bar-row:last-child{margin-bottom:0;}
+.cat-bar-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;}
+.cat-bar-top .cname{color:var(--ink);font-weight:600;}
+.cat-bar-top .cval{color:var(--ink-muted);font-variant-numeric:tabular-nums;}
+.cat-bar-track{background:var(--border);border-radius:20px;height:7px;overflow:hidden;}
+.cat-bar-fill{background:var(--green);height:100%;border-radius:20px;}
+.quick-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.quick-row:last-child{border-bottom:none;}
+.quick-row .qval{font-weight:700;font-variant-numeric:tabular-nums;}
+
+.mobile-bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--border);display:flex;z-index:500;padding-bottom:env(safe-area-inset-bottom);}
+.mobile-bottom-nav button{flex:1;border:none;background:none;padding:9px 4px 8px;font-family:inherit;font-size:10px;font-weight:700;color:var(--ink-muted);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.mobile-bottom-nav button .icon{font-size:17px;}
+.mobile-bottom-nav button.active{color:var(--green);}
+
+.tabs{display:flex;gap:6px;margin-bottom:18px;}
+.tab-btn{flex:1;font-size:13px;font-weight:700;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--paper);color:var(--ink-muted);cursor:pointer;}
+.tab-btn.active{background:var(--green);border-color:var(--green);color:#fff;}
+.panel{display:none;}
+.panel.active{display:block;}
 .header{text-align:center;margin-bottom:24px;}
 .header .eyebrow{font-size:11px;letter-spacing:2px;color:var(--gold-dark);font-weight:700;text-transform:uppercase;margin-bottom:6px;}
 .header h1{font-family:'Fraunces',serif;font-size:22px;color:var(--green);font-weight:600;}
@@ -49,12 +121,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green);}
 .session-bar .who{font-size:13px;}
 .session-bar .who strong{display:block;font-size:14px;}
 .logout-btn{background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;cursor:pointer;}
-
-.tabs{display:flex;gap:6px;margin-bottom:18px;}
-.tab-btn{flex:1;font-size:13px;font-weight:700;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--paper);color:var(--ink-muted);cursor:pointer;}
-.tab-btn.active{background:var(--green);border-color:var(--green);color:#fff;}
-.panel{display:none;}
-.panel.active{display:block;}
 
 .card{background:var(--paper);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;}
 .card h3{font-family:'Fraunces',serif;font-size:15px;color:var(--green);margin-bottom:14px;}
@@ -146,18 +212,103 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
   </div>
 
   <div id="mainApp">
-    <div class="session-bar">
-      <div class="who">Logged in as<strong id="whoName"></strong></div>
-      <button class="logout-btn" onclick="logout()">Log out</button>
-    </div>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-logo">
+          <div class="mark">⛪</div>
+          <div class="motto">Cor Unum In Christo</div>
+        </div>
+        <nav class="sidebar-nav">
+          <button class="sidebar-item active" data-tab="dashboard" onclick="switchTab('dashboard')"><span>📊</span> Dashboard</button>
+          <button class="sidebar-item" data-tab="entry" onclick="switchTab('entry')"><span>📒</span> Ledger Entries</button>
+          <button class="sidebar-item" data-tab="pledge" onclick="switchTab('pledge')"><span>🤝</span> Pledges</button>
+          <button class="sidebar-item" data-tab="recent" onclick="switchTab('recent')"><span>🧾</span> Recent</button>
+          <button class="sidebar-item soon" disabled><span>📁</span> Categories <span class="tag-soon">Soon</span></button>
+          <button class="sidebar-item soon" disabled><span>🙋</span> Contributors <span class="tag-soon">Soon</span></button>
+          <button class="sidebar-item soon" disabled><span>📄</span> Reports <span class="tag-soon">Soon</span></button>
+          <button class="sidebar-item soon" disabled><span>⚙️</span> Settings <span class="tag-soon">Soon</span></button>
+        </nav>
+        <div class="sidebar-foot">
+          <div class="who">Logged in as<strong id="whoName"></strong></div>
+          <button class="logout-btn" onclick="logout()">Log out</button>
+        </div>
+      </aside>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="entry" onclick="switchTab('entry')">New Entry</button>
-      <button class="tab-btn" data-tab="pledge" onclick="switchTab('pledge')">Pledges</button>
-      <button class="tab-btn" data-tab="recent" onclick="switchTab('recent')">Recent</button>
-    </div>
+      <div class="main-col">
+        <div class="session-bar">
+          <div class="who">Logged in as<strong id="whoNameMobile"></strong></div>
+          <button class="logout-btn" onclick="logout()">Log out</button>
+        </div>
 
-    <div class="panel active" id="panel-entry">
+        <div class="topbar">
+          <div>
+            <h1>St. Charles Catholic Church, Owhase</h1>
+            <div class="sub">Harvest of Unstoppable Blessings</div>
+          </div>
+          <div class="topbar-live" id="dashLiveBadge"><span class="dot"></span><span id="dashLiveText">Live</span> · <span id="dashUpdatedText">updating…</span></div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+          <button class="tab-btn" data-tab="entry" onclick="switchTab('entry')">New Entry</button>
+          <button class="tab-btn" data-tab="pledge" onclick="switchTab('pledge')">Pledges</button>
+          <button class="tab-btn" data-tab="recent" onclick="switchTab('recent')">Recent</button>
+        </div>
+
+        <div class="panel active" id="panel-dashboard">
+          <div class="summary-grid">
+            <div class="summary-card">
+              <div class="summary-icon income">↗</div>
+              <div>
+                <div class="summary-label">Total Income</div>
+                <div class="summary-value" id="dashTotalIncome">···</div>
+                <div class="summary-sub" id="dashIncomeCount"></div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-icon expense">↘</div>
+              <div>
+                <div class="summary-label">Total Expenditure</div>
+                <div class="summary-value" id="dashTotalExpense">···</div>
+                <div class="summary-sub" id="dashExpenseCount"></div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-icon net">⚖</div>
+              <div>
+                <div class="summary-label">Net Balance</div>
+                <div class="summary-value" id="dashNetBalance">···</div>
+                <div class="summary-sub" id="dashNetAsOf"></div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-icon pledge">🤍</div>
+              <div>
+                <div class="summary-label">Outstanding Pledges</div>
+                <div class="summary-value" id="dashOutstanding">···</div>
+                <div class="summary-sub" id="dashPledgeCount"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-grid">
+            <div class="card">
+              <h3>Income by Category</h3>
+              <div id="dashCatBreakdown"><div class="empty">Loading…</div></div>
+            </div>
+            <div class="card">
+              <h3>Quick Summary</h3>
+              <div id="dashQuickSummary"><div class="empty">Loading…</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Recent Ledger Entries</h3>
+            <div id="dashRecentList"><div class="empty">Loading…</div></div>
+          </div>
+        </div>
+
+        <div class="panel" id="panel-entry">
       <div class="card">
         <h3>Record a Transaction</h3>
         <div id="entryErr"></div>
@@ -274,11 +425,20 @@ input:disabled{background:#F1EEE4;color:var(--ink-muted);cursor:not-allowed;}
         <div id="recentList"><div class="empty">Loading…</div></div>
       </div>
     </div>
-  </div>
 
-  <footer style="text-align:center;padding:24px 20px 10px;color:var(--ink-muted);font-size:12px;">
-    <a href="https://dalewebx.vercel.app" target="_blank" rel="noopener" style="color:var(--ink-muted);text-decoration:underline;">Built by DaleX</a>
-  </footer>
+        <footer style="text-align:center;padding:24px 20px 10px;color:var(--ink-muted);font-size:12px;">
+          <a href="https://dalewebx.vercel.app" target="_blank" rel="noopener" style="color:var(--ink-muted);text-decoration:underline;">Built by DaleX</a>
+        </footer>
+      </div>
+    </div>
+
+    <nav class="mobile-bottom-nav">
+      <button data-tab="dashboard" class="active" onclick="switchTab('dashboard')"><span class="icon">📊</span>Dashboard</button>
+      <button data-tab="entry" onclick="switchTab('entry')"><span class="icon">📒</span>Ledger</button>
+      <button data-tab="pledge" onclick="switchTab('pledge')"><span class="icon">🤝</span>Pledges</button>
+      <button data-tab="recent" onclick="switchTab('recent')"><span class="icon">🧾</span>Recent</button>
+    </nav>
+  </div>
 </div>
 
 <div class="modal-overlay" id="fulfillModal">
@@ -467,6 +627,7 @@ function enterApp(name, role, username, pin){
   SESSION = { username, pin, name, role };
   rememberUsername(username);
   document.getElementById('whoName').textContent = name + ' · ' + role;
+  document.getElementById('whoNameMobile').textContent = name + ' · ' + role;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('splashWelcome').textContent = `Welcome, ${name} · ${role}`;
   // Preload the data in the background while the reminder splash is up, so
@@ -474,6 +635,7 @@ function enterApp(name, role, username, pin){
   populateCategorySelects();
   loadPendingPledges();
   loadRecent();
+  loadDashboard();
   document.getElementById('splashScreen').style.display = 'flex';
 }
 
@@ -580,10 +742,13 @@ function setEntryType(type){
 function switchTab(tab){
   disarmSaveButton();
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.sidebar-item[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.mobile-bottom-nav button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('panel-'+tab).classList.add('active');
   if(tab==='pledge') loadPendingPledges();
   if(tab==='recent') loadRecent();
+  if(tab==='dashboard') loadDashboard(false);
 }
 
 async function submitOneEntry(payload){
@@ -930,33 +1095,119 @@ async function confirmFulfill(){
   }
 }
 
+function renderEntryRows(rows, targetElId){
+  const el = document.getElementById(targetElId);
+  if(!Array.isArray(rows) || rows.length===0){ el.innerHTML = '<div class="empty">No entries yet.</div>'; return; }
+  el.innerHTML = rows.map(r=>{
+    const hasName = !!r.name;
+    const title = hasName ? r.name : r.category;
+    const catTag = hasName ? `<span class="cat-tag ${r.type}">${esc(r.category)}</span>` : '';
+    const metaParts = [`Logged by ${esc(r.created_by_name)}`];
+    if(r.payment_method) metaParts.push(esc(r.payment_method) + (r.bank_account ? ` (${esc(r.bank_account)})` : ''));
+    return `
+    <div class="recent-row">
+      <div class="recent-left">
+        <div class="recent-name">${esc(title)}</div>
+        <div class="recent-meta">${catTag}${metaParts.join(' · ')}</div>
+      </div>
+      <div class="recent-right">
+        <span class="nums" style="color:${r.type==='income'?'var(--income)':'var(--expense)'};font-weight:700;">${r.type==='income'?'+':'−'}${naira(r.amount)}</span>
+        <button class="recent-delete" title="Delete this entry" onclick="deleteEntry('${r.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function loadRecent(){
-  const el = document.getElementById('recentList');
   try{
     const res = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/entries?select=*&order=created_at.desc&limit=15`, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer '+SUPABASE_ANON_KEY }
     });
     const rows = await res.json();
-    if(!Array.isArray(rows) || rows.length===0){ el.innerHTML = '<div class="empty">No entries yet.</div>'; return; }
-    el.innerHTML = rows.map(r=>{
-      const hasName = !!r.name;
-      const title = hasName ? r.name : r.category;
-      const catTag = hasName ? `<span class="cat-tag ${r.type}">${esc(r.category)}</span>` : '';
-      const metaParts = [`Logged by ${esc(r.created_by_name)}`];
-      if(r.payment_method) metaParts.push(esc(r.payment_method) + (r.bank_account ? ` (${esc(r.bank_account)})` : ''));
-      return `
-      <div class="recent-row">
-        <div class="recent-left">
-          <div class="recent-name">${esc(title)}</div>
-          <div class="recent-meta">${catTag}${metaParts.join(' · ')}</div>
-        </div>
-        <div class="recent-right">
-          <span class="nums" style="color:${r.type==='income'?'var(--income)':'var(--expense)'};font-weight:700;">${r.type==='income'?'+':'−'}${naira(r.amount)}</span>
-          <button class="recent-delete" title="Delete this entry" onclick="deleteEntry('${r.id}')">🗑</button>
-        </div>
-      </div>`;
-    }).join('');
-  }catch(e){ el.innerHTML = '<div class="empty">Could not load recent entries.</div>'; }
+    renderEntryRows(rows, 'recentList');
+  }catch(e){ document.getElementById('recentList').innerHTML = '<div class="empty">Could not load recent entries.</div>'; }
+}
+
+function fmtDateShort(d){ return new Date(d).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); }
+
+let dashLastUpdated = null;
+
+async function loadDashboard(){
+  try{
+    const [entriesRes, pledgesRes] = await Promise.all([
+      fetchWithTimeout(`${SUPABASE_URL}/rest/v1/entries?select=*&order=entry_date.desc&order=created_at.desc`, {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer '+SUPABASE_ANON_KEY }
+      }),
+      fetchWithTimeout(`${SUPABASE_URL}/rest/v1/pledges?select=*`, {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer '+SUPABASE_ANON_KEY }
+      }),
+    ]);
+    const entries = await entriesRes.json();
+    const pledges = await pledgesRes.json();
+    renderDashboard(entries, pledges);
+    dashLastUpdated = new Date();
+    document.getElementById('dashLiveBadge').classList.remove('stale');
+    document.getElementById('dashLiveText').textContent = 'Live';
+    updateDashUpdatedText();
+  }catch(e){
+    document.getElementById('dashLiveBadge').classList.add('stale');
+    document.getElementById('dashLiveText').textContent = 'Offline';
+  }
+}
+
+function updateDashUpdatedText(){
+  const el = document.getElementById('dashUpdatedText');
+  if(!el) return;
+  if(!dashLastUpdated){ el.textContent = 'updating…'; return; }
+  const secs = Math.max(0, Math.round((Date.now()-dashLastUpdated.getTime())/1000));
+  el.textContent = secs < 3 ? 'updated just now' : `updated ${secs}s ago`;
+}
+setInterval(updateDashUpdatedText, 1000);
+
+function renderDashboard(entries, pledges){
+  const income = entries.filter(e=>e.type==='income');
+  const expense = entries.filter(e=>e.type==='expense');
+  const totalIncome = income.reduce((s,e)=>s+Number(e.amount),0);
+  const totalExpense = expense.reduce((s,e)=>s+Number(e.amount),0);
+  const net = totalIncome - totalExpense;
+  const pendingPledges = pledges.filter(p=>p.status==='pending');
+  const totalPledged = pledges.reduce((s,p)=>s+Number(p.amount),0);
+  const totalPaidPledges = pledges.filter(p=>p.status==='fulfilled').reduce((s,p)=>s+Number(p.amount),0);
+  const outstanding = pendingPledges.reduce((s,p)=>s+Number(p.amount),0);
+
+  document.getElementById('dashTotalIncome').textContent = naira(totalIncome);
+  document.getElementById('dashIncomeCount').textContent = `From ${income.length} ${income.length===1?'entry':'entries'}`;
+  document.getElementById('dashTotalExpense').textContent = naira(totalExpense);
+  document.getElementById('dashExpenseCount').textContent = `From ${expense.length} ${expense.length===1?'entry':'entries'}`;
+  document.getElementById('dashNetBalance').textContent = naira(net);
+  document.getElementById('dashNetAsOf').textContent = `As of ${fmtDateShort(new Date())}`;
+  document.getElementById('dashOutstanding').textContent = naira(outstanding);
+  document.getElementById('dashPledgeCount').textContent = `From ${pendingPledges.length} ${pendingPledges.length===1?'pledge':'pledges'}`;
+
+  const catTotals = {};
+  income.forEach(e => { catTotals[e.category] = (catTotals[e.category]||0) + Number(e.amount); });
+  const catList = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+  const catEl = document.getElementById('dashCatBreakdown');
+  catEl.innerHTML = catList.length===0 ? '<div class="empty">No income yet.</div>' : catList.map(([cat,total])=>{
+    const pct = totalIncome>0 ? Math.round((total/totalIncome)*100) : 0;
+    return `<div class="cat-bar-row">
+      <div class="cat-bar-top"><span class="cname">${esc(cat)}</span><span class="cval">${pct}% · ${naira(total)}</span></div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dashQuickSummary').innerHTML = `
+    <div class="quick-row"><span>Total Income</span><span class="qval" style="color:var(--income);">${naira(totalIncome)}</span></div>
+    <div class="quick-row"><span>Total Expenditure</span><span class="qval" style="color:var(--expense);">${naira(totalExpense)}</span></div>
+    <div class="quick-row"><span>Net Balance</span><span class="qval">${naira(net)}</span></div>
+    <div class="quick-row"><span>Total Pledged</span><span class="qval">${naira(totalPledged)}</span></div>
+    <div class="quick-row"><span>Total Pledges Paid</span><span class="qval">${naira(totalPaidPledges)}</span></div>
+    <div class="quick-row"><span>Outstanding Pledges</span><span class="qval">${naira(outstanding)}</span></div>
+    <div class="quick-row"><span>Total Entries</span><span class="qval">${entries.length}</span></div>
+    <div class="quick-row"><span>Active Pledges</span><span class="qval">${pendingPledges.length}</span></div>
+  `;
+
+  renderEntryRows(entries.slice(0,8), 'dashRecentList');
 }
 
 async function deleteEntry(entryId){
@@ -970,6 +1221,7 @@ async function deleteEntry(entryId){
     if(!res.ok){ alert(data.error || 'Could not delete entry.'); return; }
     loadRecent();
     loadPendingPledges();
+    loadDashboard();
   }catch(e){
     alert(e.message || 'Could not reach the server. Check your connection.');
   }
